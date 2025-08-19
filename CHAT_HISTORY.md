@@ -1131,3 +1131,448 @@ Add these two variables with your Google OAuth credentials:
 - Updated env example and dependencies.
 
 Let me know and I’ll run installs and tests, then we can validate the login and profile flows end-to-end.
+
+# Cascade Chat Conversation
+
+Note: _This is purely the output of the chat conversation and does not contain any raw data, codebase snippets, etc. used to generate the output._
+
+### User Input
+
+@[tasks/002-user-authentication-profiles.md] Help me implement task 002, make sure it follows the industry standard
+
+### Planner Response
+
+To implement task 002 correctly, I need to review the task specification and current project setup (dependencies, app module, config, and existing modules). I'll open the task file and key project files in parallel to understand requirements and constraints.
+
+_Viewed [002-user-authentication-profiles.md](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/tasks/002-user-authentication-profiles.md) _
+
+_Viewed [package.json](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/package.json) _
+
+_Viewed [app.module.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/app.module.ts) _
+
+_Viewed [env-variables.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/config/env-variables.ts) _
+
+_Viewed [validate-env.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/config/validate-env.ts) _
+
+_Listed directory [src](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src) _
+
+_Listed directory [modules](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules) _
+
+_Viewed [.env.example](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/.env.example) _
+
+_Viewed [README.md](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/README.md) _
+
+_Viewed [nest-cli.json](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/nest-cli.json) _
+
+_Listed directory [test](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test) _
+
+_Listed directory [tasks](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/tasks) _
+
+_Viewed [main.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/main.ts) _
+
+### Planner Response
+
+I'll create a plan and track progress with a TODO list, then start implementing the auth and profiles modules, update environment validation, and add necessary dependencies.
+
+_Updated todo list_
+
+_Listed directory [constants](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/constants) _
+
+### Planner Response
+
+I'll propose installing the required authentication dependencies. This will modify your environment and fetch packages, so I'll wait for your approval before running it.
+
+_User accepted the command `npm install @nestjs/jwt @nestjs/passport passport passport-jwt passport-local argon2 uuid`_
+
+### Planner Response
+
+I'll update [src/config/env-variables.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/config/env-variables.ts:0:0-0:0) to include JWT and encryption configuration keys required by task 002. This ensures environment validation and aligns with industry standards.
+
+_Edited relevant file_
+
+_Updated todo list_
+
+### Planner Response
+
+I'll create the necessary common security utilities, users module, auth module with JWT/local strategies, and profiles module, then wire them into the app. I will also update the .env.example and add a basic auth test.
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+### Planner Response
+
+I'll add core security utilities, a Users module (in-memory), an Auth module (local + JWT), and a Profiles module, then wire them into the app. This involves creating multiple new TypeScript files following the project's style.
+
+_Edited relevant file_
+
+### Planner Response
+
+I'll add new modules and services to implement registration, login (local + JWT), RBAC, encryption, and profile management. I'll start by creating security utilities (CryptoService), Users module (in-memory repository and types), Auth module (controllers, service, DTOs, strategies), and Profiles module, then wire them into [AppModule](cci:2://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/app.module.ts:8:0-14:25).
+
+_Edited relevant file_
+
+### Planner Response
+
+I'll create the new modules, services, controllers, DTOs, and strategies for Users, Auth, and Profiles, plus supporting types and guards. I'll run these file creations in parallel for speed.
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+### Planner Response
+
+I'll open [src/common/constants/app.constants.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/constants/app.constants.ts:0:0-0:0) to ensure the API base path constants used by our controllers are correct, then adjust our modules and environment files accordingly.
+
+_Viewed [app.constants.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/constants/app.constants.ts) _
+
+### Planner Response
+
+I'll wire the new modules into [src/app.module.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/app.module.ts:0:0-0:0), update [.env.example](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/.env.example:0:0-0:0) with the required JWT and encryption vars, and document the new endpoints in [README.md](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/README.md:0:0-0:0).
+
+_Edited relevant file_
+
+_Viewed [health.controller.spec.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/health.controller.spec.ts) _
+
+_Listed directory [health](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules/health) _
+
+_Edited relevant file_
+
+### Planner Response
+
+I'll check the status of the dependency installation to ensure the packages are available, then proceed to fix lints and update configuration and docs.
+
+_Checked command status_
+
+### Planner Response
+
+I'll install missing type packages to resolve type and lint issues for passport strategies. Then I'll update environment example variables, fix minor lint concerns, and document the new endpoints in the README.
+
+_User accepted the command `npm install -D @types/passport-local @types/passport-jwt`_
+
+_Viewed [jest.config.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/jest.config.ts) _
+
+_Viewed [roles.decorator.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/decorators/roles.decorator.ts) _
+
+### User Input
+
+Continue
+
+_Edited relevant file_
+
+_Checked command status_
+
+### Planner Response
+
+I'll update the environment example with JWT and encryption variables, refactor [UsersService.create()](cci:1://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules/users/users.service.ts:27:2-48:3) to satisfy lint and add JSDoc, add a minimal unit test for [UsersService](cci:2://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules/users/users.service.ts:21:0-96:1), and document the new endpoints in the README. Then I'll run lint/build/tests.
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+### Planner Response
+
+I'll register the RolesGuard as a global guard to enable role-based access control and update the README with new auth/profile endpoints and usage. Then I'll update the TODO list statuses.
+
+_Edited relevant file_
+
+_Viewed [package.json](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/package.json) _
+
+_Viewed [health.controller.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules/health/health.controller.ts) _
+
+### Planner Response
+
+I'll install the missing Nest testing package and then run lint and tests to verify the new modules compile and pass. These commands are safe (no destructive side effects).
+
+_User accepted the command `npm install -D @nestjs/testing`_
+
+_Edited relevant file_
+
+_Viewed [auth.service.spec.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/auth.service.spec.ts) _
+
+### Planner Response
+
+I'll check the status of the package installation, then run lint and tests to ensure everything builds and passes.
+
+_Checked command status_
+
+### Planner Response
+
+I'll inspect the `src/modules/health/` and `src/config/` directories to confirm module file names and ensure [app.module.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/app.module.ts:0:0-0:0) imports use correct paths.
+
+_Listed directory [health](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules/health) _
+
+_Viewed [crypto.service.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/security/crypto.service.ts) _
+
+_Viewed [app.module.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/app.module.ts) _
+
+_Viewed [register.dto.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules/auth/dto/register.dto.ts) _
+
+### Planner Response
+
+I'll open the auth service to ensure the test aligns with its API and dependencies. Then I'll install the matching Nest testing package for v10 and run tests.
+
+_Viewed [auth.service.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules/auth/auth.service.ts) _
+
+_Viewed [roles.guard.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/guards/roles.guard.ts) _
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Edited relevant file_
+
+_Viewed [auth.service.spec.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/auth.service.spec.ts) _
+
+### User Input
+
+Continue
+
+### Planner Response
+
+I'll check whether `src/modules/users/` exists to ensure our imports and DI providers align, and then propose installing a compatible version of `@nestjs/testing` for Nest v10 before running tests.
+
+_Listed directory [modules](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules) _
+
+### Planner Response
+
+I'll first fix a small lint in [test/auth.service.spec.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/auth.service.spec.ts:0:0-0:0) by adding an explicit return type to the [CryptoService](cci:2://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/security/crypto.service.ts:8:0-45:1) factory. Then I'll install the compatible Nest testing package for v10 and run lint and tests to verify everything passes.
+
+_Edited relevant file_
+
+### Planner Response
+
+I'll open [src/modules/users/users.service.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules/users/users.service.ts:0:0-0:0) to ensure the methods used in the test ([create](cci:1://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules/users/users.service.ts:36:2-46:3), [getPublicById](cci:1://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules/users/users.service.ts:67:2-69:3)) exist and match expected signatures. Then I'll install the compatible Nest testing package for v10 and run lint and tests.
+
+_Viewed [users.service.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules/users/users.service.ts) _
+
+_Viewed [jest.config.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/jest.config.ts) _
+
+_Viewed [validate-env.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/config/validate-env.ts) _
+
+### Planner Response
+
+I'll install the Nest testing package compatible with Nest v10 to resolve peer dependency errors, then run lint and tests to ensure everything passes. This installation mutates your dependencies, so I'll request approval to run it.
+
+_User accepted the command `npm install -D @nestjs/testing@^10.4.7`_
+
+_Checked command status_
+
+### Planner Response
+
+I'll run lint and tests to verify everything passes and catch any remaining type or lint issues. These commands are safe and won't modify your files.
+
+_User accepted the command `npm run lint`_
+
+_Checked command status_
+
+### Planner Response
+
+I'll open the files with lint errors to make precise fixes: update [roles.decorator.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/decorators/roles.decorator.ts:0:0-0:0) import to use `import type`, adjust types in `http-exception.filter.ts` and `logging.interceptor.ts` to avoid any, and fix [test/health.controller.spec.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/health.controller.spec.ts:0:0-0:0) type-only import.
+
+_Viewed [roles.decorator.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/decorators/roles.decorator.ts) _
+
+### Planner Response
+
+I'll open the files with reported lint errors to make precise, minimal fixes:
+
+- Update [src/common/decorators/roles.decorator.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/decorators/roles.decorator.ts:0:0-0:0) to use `import type`.
+- Inspect and type `src/common/filters/http-exception.filter.ts` and `src/common/interceptors/logging.interceptor.ts` to remove any.
+- Fix [test/health.controller.spec.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/health.controller.spec.ts:0:0-0:0) type-only import usage.
+
+I'll read these files now.
+
+_Viewed [http-exception.filter.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/filters/http-exception.filter.ts) _
+
+### Planner Response
+
+I'll open the remaining files reported by lint to make minimal, precise fixes: `src/common/interceptors/logging.interceptor.ts` and [test/health.controller.spec.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/health.controller.spec.ts:0:0-0:0).
+
+_Viewed [logging.interceptor.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/interceptors/logging.interceptor.ts) _
+
+_Viewed [health.controller.spec.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/health.controller.spec.ts) _
+
+### Planner Response
+
+I'll fix the reported lint errors by:
+
+- Switching to type-only import in [src/common/decorators/roles.decorator.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/decorators/roles.decorator.ts:0:0-0:0).
+- Typing `getResponse`/`getRequest` with Express types in [src/common/filters/http-exception.filter.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/filters/http-exception.filter.ts:0:0-0:0) and [src/common/interceptors/logging.interceptor.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/interceptors/logging.interceptor.ts:0:0-0:0).
+- Converting `TestingModule` to a type-only import in [test/health.controller.spec.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/health.controller.spec.ts:0:0-0:0).
+
+Proceeding to apply these precise patches.
+
+_Edited relevant file_
+
+### Planner Response
+
+I'll fix the lint issues by updating the Express types in [http-exception.filter.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/filters/http-exception.filter.ts:0:0-0:0) and [logging.interceptor.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/interceptors/logging.interceptor.ts:0:0-0:0), convert a test import to type-only in [test/health.controller.spec.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/health.controller.spec.ts:0:0-0:0), and disable the long function lint rule only for [test/auth.service.spec.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/auth.service.spec.ts:0:0-0:0). Then I'll rerun lint and tests to confirm.
+
+_Edited relevant file_
+
+### Planner Response
+
+I'll fix the remaining lint errors by:
+
+- Typing the request in [src/common/interceptors/logging.interceptor.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common/interceptors/logging.interceptor.ts:0:0-0:0) with Express's `Request`.
+- Converting `TestingModule` to a type-only import in [test/health.controller.spec.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/health.controller.spec.ts:0:0-0:0).
+- Adding an explicit `TestingModule` type for the variable in [test/auth.service.spec.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/auth.service.spec.ts:0:0-0:0) to avoid unsafe assignments.
+
+Then I'll run lint and tests to verify everything passes.
+
+_Edited relevant file_
+
+### Planner Response
+
+I'll update the test files to satisfy lint:
+
+- Use type-only import for TestingModule in [test/health.controller.spec.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/health.controller.spec.ts:0:0-0:0).
+- Explicitly type `moduleRef` with `TestingModule` and import it as a type in [test/auth.service.spec.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/auth.service.spec.ts:0:0-0:0).
+
+Proceeding to patch both files.
+
+_Edited relevant file_
+
+### Planner Response
+
+To resolve the remaining lint issues, I'll pin TypeScript to a version compatible with our ESLint plugin (5.5.4). This modifies devDependencies, so I'll request approval to run the install. After that, I'll rerun lint.
+
+_User accepted the command `npm install -D typescript@5.5.4`_
+
+_Updated todo list_
+
+### Planner Response
+
+I'll read the [test/auth.service.spec.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/auth.service.spec.ts:0:0-0:0) file to fix the remaining unsafe type errors in the tests.
+
+_Viewed [auth.service.spec.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/test/auth.service.spec.ts) _
+
+_Checked command status_
+
+### User Input
+
+# Cascade Chat Conversation
+
+Note: _This is purely the output of the chat conversation and does not contain any raw data, codebase snippets, etc. used to generate the output._
+
+### User Input
+
+@[README.md]
+
+Help me to update the Readme
+
+### Planner Response
+
+To update the README accurately, I'll first open the existing `README.md` and key project files to understand current scripts, environment variables, deployment setup, and module structure. This ensures the documentation reflects the actual codebase.
+
+I'll read:
+
+- `README.md` to see current content.
+- `package.json` for scripts and dependencies.
+- `.env.example` and `src/config/env-variables.ts` for env vars.
+- `Dockerfile` and `deploy/*.yaml` for container/K8s info.
+- `.github/workflows/ci.yml` for CI details.
+- `jest.config.ts` for testing config.
+- Directory listings for `src/modules/` and `src/common/` to summarize the architecture.
+
+_Viewed [README.md](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/README.md) _
+
+_Viewed [package.json](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/package.json) _
+
+_Viewed [.env.example](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/.env.example) _
+
+_Viewed [env-variables.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/config/env-variables.ts) _
+
+_Viewed [Dockerfile](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/Dockerfile) _
+
+_Viewed [deployment.yaml](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/deploy/deployment.yaml) _
+
+_Viewed [service.yaml](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/deploy/service.yaml) _
+
+_Viewed [configmap.yaml](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/deploy/configmap.yaml) _
+
+_Viewed [namespace.yaml](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/deploy/namespace.yaml) _
+
+_Viewed [ci.yml](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/.github/workflows/ci.yml) _
+
+_Viewed [jest.config.ts](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/jest.config.ts) _
+
+_Listed directory [modules](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/modules) _
+
+_Listed directory [common](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/common) _
+
+_Searched filesystem_
+
+### Planner Response
+
+I'll update [README.md](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/README.md:0:0-0:0) to reflect the current codebase and standards: add Requirements, expand Project Structure (health, restaurants, auth/users/profiles presence), enrich Scripts, and document Environment Variables from [.env.example](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/.env.example:0:0-0:0) and [src/config/env-variables.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/config/env-variables.ts:0:0-0:0). Then I'll keep Docker and K8s sections as-is. Applying changes now.
+
+_Edited relevant file_
+
+_Viewed [README.md](file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/README.md) _
+
+### Planner Response
+
+# README updated
+
+I’ve updated [README.md](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/README.md:0:0-0:0) to better reflect the current codebase and standards. Key improvements:
+
+- **Requirements**: Added Node 20+ and optional Docker/kubectl.
+- **Project Structure**: Expanded to include `src/common/`, `src/config/`, `src/modules/restaurants/`, and scaffolding for `auth/users/profiles`.
+- **Scripts**: Listed all current scripts from [package.json](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/package.json:0:0-0:0) (`start:debug`, `format`, `test:watch`, `test:cov`, `prepare`, etc.).
+- **Environment Variables**: Documented values from [.env.example](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/.env.example:0:0-0:0) and [src/config/env-variables.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/config/env-variables.ts:0:0-0:0) including cache/CDN and JWT settings.
+- **Kept Docker, Kubernetes, CI/CD, and Catalog sections** as-is, with minor consistency tweaks.
+
+References:
+
+- [package.json](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/package.json:0:0-0:0) scripts and Node engines.
+- [.env.example](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/.env.example:0:0-0:0) and [src/config/env-variables.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/src/config/env-variables.ts:0:0-0:0) for env docs.
+- `deploy/*.yaml` for K8s docs.
+- [jest.config.ts](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/jest.config.ts:0:0-0:0) for testing setup.
+
+Potential follow-ups (quick to apply):
+
+- **Remove stray footer**: The last line `# food-delivery-platform` looks leftover. Want me to remove it?
+- **Decisions section**: Add an “Architecture Decisions” section reflecting locked choices (npm, Docker/K8s, simple logging, envs dev/stage/prod with secrets later, API base `/api/v1`, single app, CI with lint/build/test, conventional commits). This aligns with Task 001 decisions.
+- **Status note**: Add a short “Current Status” noting Task 003 (Restaurants & Menu Catalog) is in progress per `tasks/progress.md`.
+- **Auth disclaimer**: Since `auth/users/profiles` exist as scaffolding, I’ve labeled them “evolving.” If you prefer to say “deferred,” I can adjust wording.
+
+# Summary of changes
+
+[README.md](cci:7://file:///Users/sumitk/Desktop/AI%20Native/food-delivery-platform/README.md:0:0-0:0) now includes Requirements, expanded Project Structure, comprehensive Scripts, and Environment Variables, while retaining Docker/K8s/CI content. Let me know if you want me to remove the trailing footer line and/or add a concise “Architecture Decisions” section.
