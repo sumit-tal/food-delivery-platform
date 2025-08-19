@@ -1,0 +1,496 @@
+openapi: 3.0.3
+info:
+  title: SwiftEats Backend API
+  version: 0.1.0
+  description: |
+    HTTP API for SwiftEats food delivery platform.
+    Base path: /api/v1
+  contact:
+    name: SwiftEats
+servers:
+  - url: http://localhost:3000
+    description: Local
+
+security:
+  - {}
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: Profiles
+  - name: Restaurants
+
+paths:
+  /api/v1/health:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      operationId: getHealth
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  uptime:
+                    type: number
+                    format: float
+                    example: 123.45
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: '2025-08-19T18:10:00.000Z'
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDto'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  email:
+                    type: string
+                    format: email
+        '400':
+          description: Validation error
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email and password
+      description: Uses local auth guard. On success returns a JWT access token.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+        '401':
+          description: Unauthorized
+  /api/v1/auth/google:
+    get:
+      tags: [Auth]
+      summary: Start Google OAuth flow
+      operationId: googleAuth
+      responses:
+        '302':
+          description: Redirect to Google OAuth provider
+  /api/v1/auth/google/callback:
+    get:
+      tags: [Auth]
+      summary: Google OAuth callback
+      operationId: googleCallback
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+        '401':
+          description: Unauthorized
+  /api/v1/profile/me:
+    get:
+      tags: [Profiles]
+      summary: Get current user profile
+      operationId: getMe
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileView'
+        '401':
+          description: Unauthorized
+    patch:
+      tags: [Profiles]
+      summary: Update current user profile
+      operationId: updateMe
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileView'
+        '401':
+          description: Unauthorized
+  /api/v1/restaurants:
+    get:
+      tags: [Restaurants]
+      summary: List restaurants
+      operationId: listRestaurants
+      parameters:
+        - in: query
+          name: city
+          schema:
+            type: string
+        - in: query
+          name: cuisine
+          schema:
+            type: string
+        - in: query
+          name: open
+          schema:
+            type: boolean
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestaurantsListResponse'
+    post:
+      tags: [Restaurants]
+      summary: Onboard a restaurant
+      operationId: createRestaurant
+      description: Requires role restaurant_owner or admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRestaurantDto'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicRestaurant'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+  /api/v1/restaurants/{slug}:
+    get:
+      tags: [Restaurants]
+      summary: Get restaurant by slug
+      operationId: getRestaurantBySlug
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicRestaurant'
+        '404':
+          description: Not found
+  /api/v1/restaurants/{slug}/menu:
+    get:
+      tags: [Restaurants]
+      summary: Get restaurant menu by slug
+      operationId: getMenuBySlug
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: Cache hints for CDN and clients
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuModel'
+        '404':
+          description: Not found
+    put:
+      tags: [Restaurants]
+      summary: Upsert restaurant menu by slug
+      operationId: upsertMenuBySlug
+      description: Requires role restaurant_owner or admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertMenuDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuModel'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UserRole:
+      type: string
+      enum: [customer, restaurant_owner, driver, admin]
+    RegisterDto:
+      type: object
+      required: [email, password, role, fullName]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        role:
+          $ref: '#/components/schemas/UserRole'
+        fullName:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+    LoginDto:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    ProfileView:
+      type: object
+      required: [id, email, role, fullName]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/UserRole'
+        fullName:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+    UpdateProfileDto:
+      type: object
+      properties:
+        fullName:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+    CreateRestaurantDto:
+      type: object
+      required: [name, cuisineTypes, city]
+      properties:
+        name:
+          type: string
+        cuisineTypes:
+          type: array
+          items:
+            type: string
+        city:
+          type: string
+        area:
+          type: string
+        isOpen:
+          type: boolean
+        rating:
+          type: number
+          minimum: 0
+          maximum: 5
+        etaMin:
+          type: number
+          minimum: 0
+        etaMax:
+          type: number
+          minimum: 0
+    PublicRestaurant:
+      type: object
+      required: [id, name, slug, cuisineTypes, city, isOpen]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        cuisineTypes:
+          type: array
+          items:
+            type: string
+        city:
+          type: string
+        area:
+          type: string
+        isOpen:
+          type: boolean
+        rating:
+          type: number
+        etaMin:
+          type: number
+        etaMax:
+          type: number
+    RestaurantsListResponse:
+      type: object
+      required: [items, page, limit]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicRestaurant'
+        page:
+          type: integer
+        limit:
+          type: integer
+    MenuItemInputDto:
+      type: object
+      required: [name, priceCents, currency, isAvailable]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        priceCents:
+          type: integer
+          minimum: 1
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        isAvailable:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+        imageUrl:
+          type: string
+    UpsertMenuDto:
+      type: object
+      required: [items]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MenuItemInputDto'
+    MenuItemModel:
+      type: object
+      required: [id, restaurantId, name, priceCents, currency, isAvailable]
+      properties:
+        id:
+          type: string
+        restaurantId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        priceCents:
+          type: integer
+        currency:
+          type: string
+        isAvailable:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+        imageUrl:
+          type: string
+    MenuModel:
+      type: object
+      required: [restaurantId, version, items]
+      properties:
+        restaurantId:
+          type: string
+        version:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MenuItemModel'

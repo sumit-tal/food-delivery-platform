@@ -1,14 +1,22 @@
 # SwiftEats Backend (NestJS Modular Monolith)
 
 ## Overview
-SwiftEats backend built with NestJS and TypeScript following a modular-monolith architecture. This repository provides a production-grade foundation with validation, linting, testing, and CI out of the box.
+ SwiftEats backend built with NestJS and TypeScript following a modular-monolith architecture. This repository provides a production-grade foundation with validation, linting, testing, and CI out of the box.
+
+## Requirements
+- Node.js 20+ (matches CI; see `package.json` engines)
+- npm (package manager)
+- Optional: Docker and kubectl for container/K8s workflows
 
 ## Project Structure
 - `src/main.ts`: App bootstrap, global middleware, pipes, filters, interceptors.
-- `src/app.module.ts`: Root module with config and feature modules.
-- `src/common/`: Shared cross-cutting concerns (constants, filters, interceptors).
-- `src/config/`: Environment configuration (class-based validation).
+- `src/app.module.ts`: Root module wiring config and feature modules.
+- `src/common/`: Cross-cutting concerns
+  - `constants/`, `decorators/`, `filters/`, `guards/`, `interceptors/`, `security/`, `types/`
+- `src/config/`: Environment configuration and validation (see `EnvVariables`).
 - `src/modules/health/`: Health checks.
+- `src/modules/restaurants/`: Restaurant & Menu Catalog (in progress).
+- `src/modules/auth/`, `src/modules/users/`, `src/modules/profiles/`: Auth & user domain (scaffolding; evolving).
 - `test/`: Jest unit tests.
 
 ## Run Locally
@@ -20,9 +28,14 @@ SwiftEats backend built with NestJS and TypeScript following a modular-monolith 
 ## Scripts
 - `npm run build` — compile TypeScript
 - `npm run start` — run compiled app
-- `npm run start:dev` — run with watch
-- `npm run lint` — lint with ESLint
+- `npm run start:dev` — run with watch (Hot Reload)
+- `npm run start:debug` — run with debugger
+- `npm run lint` — ESLint
+- `npm run format` — Prettier format
 - `npm test` — run unit tests
+- `npm run test:watch` — watch tests
+- `npm run test:cov` — test coverage
+- `npm run prepare` — setup Git hooks (husky)
 
 ## Git Workflow
 - Branch naming: `feature/<short-desc>`, `fix/<short-desc>`, `chore/<short-desc>`
@@ -59,6 +72,21 @@ Redis cache uses versioned keys for atomic updates:
 - `<prefix>:menu:<restaurantId>:latest` → latest version number
 - `<prefix>:menu:<restaurantId>:v:<version>` → serialized `MenuModel`
 
+## Environment Variables
+Copy `.env.example` to `.env` and set values:
+- `NODE_ENV`: `development` | `test` | `production`
+- `PORT`: HTTP port (default 3000)
+- `JWT_SECRET` (required): secret for signing access tokens
+- `JWT_EXPIRES_IN`: e.g., `15m`, `1h` (default `15m`)
+- `JWT_ISSUER`: logical issuer (default `swifteats`)
+- `JWT_AUDIENCE`: logical audience (default `swifteats-api`)
+- `ENCRYPTION_KEY` (required): Base64-encoded 32-byte key for AES-256-GCM
+- `OAUTH_GOOGLE_CLIENT_ID` / `OAUTH_GOOGLE_CLIENT_SECRET` (optional)
+- `CACHE_PROVIDER`: `memory` (default) or `redis`
+- `REDIS_URL`: required if `CACHE_PROVIDER=redis` (e.g., `redis://localhost:6379`)
+- `REDIS_KEY_PREFIX` (optional)
+- `CDN_BASE_URL` (optional)
+
 ## Docker
 - Build image:
   ```bash
@@ -88,5 +116,5 @@ curl http://localhost:8080/api/v1/health
 Notes:
 - Namespace defaults to `swifteats-dev`. Adjust as needed per environment.
 - Secrets (e.g., DB creds) should come from a secret manager (SSM/Vault) in later tasks.
- - Local Node: use Node 20+ to match CI (see `package.json` engines). If you are on Node 16, expect install warnings.
+- Local Node: use Node 20+ to match CI (see `package.json` engines). If you are on Node 16, expect install warnings.
 # food-delivery-platform

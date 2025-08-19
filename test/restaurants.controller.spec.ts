@@ -4,12 +4,15 @@ import { RestaurantsService } from 'src/modules/restaurants/restaurants.service'
 import type { PublicRestaurant } from 'src/modules/restaurants/models/restaurant.model';
 import type { MenuItemModel, MenuModel } from 'src/modules/restaurants/models/menu.model';
 
-type ServiceMock = Pick<RestaurantsService, 'list' | 'getDetailsBySlug' | 'getMenuBySlug' | 'upsertMenuBySlug' | 'onboard'>;
+type ServiceMock = Pick<
+  RestaurantsService,
+  'list' | 'getDetailsBySlug' | 'getMenuBySlug' | 'upsertMenuBySlug' | 'onboard'
+>;
 
 function createModule(service: ServiceMock): Promise<TestingModule> {
   return Test.createTestingModule({
     controllers: [RestaurantsController],
-    providers: [{ provide: RestaurantsService, useValue: service }]
+    providers: [{ provide: RestaurantsService, useValue: service }],
   }).compile();
 }
 
@@ -23,7 +26,7 @@ describe('RestaurantsController - list', () => {
       list: jest.fn((): readonly PublicRestaurant[] => items),
       getDetailsBySlug: jest.fn(),
       getMenuBySlug: jest.fn(),
-      upsertMenuBySlug: jest.fn()
+      upsertMenuBySlug: jest.fn(),
     };
     const moduleRef = await createModule(service);
     const controller = moduleRef.get(RestaurantsController);
@@ -38,9 +41,18 @@ describe('RestaurantsController - getBySlug', () => {
     const service: ServiceMock = {
       onboard: jest.fn(),
       list: jest.fn((): readonly PublicRestaurant[] => []),
-      getDetailsBySlug: jest.fn((slug: string): PublicRestaurant => ({ id: 'id-' + slug, name: 'N', slug, cuisineTypes: [], city: 'X', isOpen: true })),
+      getDetailsBySlug: jest.fn(
+        (slug: string): PublicRestaurant => ({
+          id: 'id-' + slug,
+          name: 'N',
+          slug,
+          cuisineTypes: [],
+          city: 'X',
+          isOpen: true,
+        }),
+      ),
       getMenuBySlug: jest.fn(),
-      upsertMenuBySlug: jest.fn()
+      upsertMenuBySlug: jest.fn(),
     };
     const moduleRef = await createModule(service);
     const controller = moduleRef.get(RestaurantsController);
@@ -58,7 +70,7 @@ describe('RestaurantsController - getMenu', () => {
       list: jest.fn((): readonly PublicRestaurant[] => []),
       getDetailsBySlug: jest.fn(),
       getMenuBySlug: jest.fn(async (): Promise<MenuModel> => menu),
-      upsertMenuBySlug: jest.fn()
+      upsertMenuBySlug: jest.fn(),
     };
     const moduleRef = await createModule(service);
     const controller = moduleRef.get(RestaurantsController);
@@ -69,13 +81,33 @@ describe('RestaurantsController - getMenu', () => {
 
 describe('RestaurantsController - upsertMenu', () => {
   it('Then forwards to service and returns new menu', async () => {
-    const returned: MenuModel = { restaurantId: 'rid', version: 1, items: [{ id: 'i1', restaurantId: 'rid', name: 'Item', priceCents: 100, currency: 'USD', isAvailable: true, tags: [] }] };
+    const returned: MenuModel = {
+      restaurantId: 'rid',
+      version: 1,
+      items: [
+        {
+          id: 'i1',
+          restaurantId: 'rid',
+          name: 'Item',
+          priceCents: 100,
+          currency: 'USD',
+          isAvailable: true,
+          tags: [],
+        },
+      ],
+    };
     const service: ServiceMock = {
       onboard: jest.fn(),
       list: jest.fn((): readonly PublicRestaurant[] => []),
       getDetailsBySlug: jest.fn(),
       getMenuBySlug: jest.fn(),
-      upsertMenuBySlug: jest.fn(async (_slug: string, items: readonly MenuItemModel[]): Promise<MenuModel> => ({ restaurantId: 'rid', version: 1, items: items as MenuItemModel[] }))
+      upsertMenuBySlug: jest.fn(
+        async (_slug: string, items: readonly MenuItemModel[]): Promise<MenuModel> => ({
+          restaurantId: 'rid',
+          version: 1,
+          items: items as MenuItemModel[],
+        }),
+      ),
     };
     const moduleRef = await createModule(service);
     const controller = moduleRef.get(RestaurantsController);
