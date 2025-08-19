@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: swifteats-dev
+  labels:
+    app.kubernetes.io/name: swifteats-backend
+    app.kubernetes.io/env: dev

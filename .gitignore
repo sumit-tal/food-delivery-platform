@@ -1,0 +1,22 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency directories
+node_modules/
+
+# Production
+/dist
+
+# Tests
+/coverage
+
+# Env files
+.env
+.env.*.local
+
+# OS
+.DS_Store
