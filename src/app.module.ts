@@ -8,6 +8,10 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { RolesGuard } from './common/guards/roles.guard';
 import { RestaurantsModule } from './modules/restaurants/restaurants.module';
+import { OrdersModule } from './modules/orders/orders.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { TrackingModule } from './modules/tracking/tracking.module';
+import { SimulatorModule } from './modules/simulator/simulator.module';
 
 /**
  * AppModule is the root module of the SwiftEats backend application.
@@ -19,7 +23,11 @@ import { RestaurantsModule } from './modules/restaurants/restaurants.module';
     UsersModule,
     AuthModule,
     ProfilesModule,
-    RestaurantsModule
+    RestaurantsModule,
+    OrdersModule,
+    PaymentsModule,
+    TrackingModule,
+    SimulatorModule
   ],
   providers: [
     { provide: APP_GUARD, useClass: RolesGuard }

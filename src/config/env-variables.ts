@@ -83,4 +83,62 @@ export class EnvVariables {
   @IsOptional()
   @IsString()
   public CDN_BASE_URL?: string;
+  
+  /**
+   * WebSocket port for real-time communication
+   */
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  public WS_PORT: number = 3001;
+  
+  /**
+   * PostgreSQL connection details for geospatial data
+   */
+  @IsString()
+  public PG_HOST: string = 'localhost';
+  
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  public PG_PORT: number = 5432;
+  
+  @IsString()
+  public PG_USER: string = 'postgres';
+  
+  @IsString()
+  public PG_PASSWORD: string = 'postgres';
+  
+  @IsString()
+  public PG_DATABASE: string = 'swifteats';
+  
+  /**
+   * Message queue configuration for location updates
+   */
+  @IsInt()
+  @Min(1)
+  public LOCATION_QUEUE_CONCURRENCY: number = 5;
+  
+  @IsInt()
+  @Min(1)
+  public LOCATION_BATCH_SIZE: number = 100;
+  
+  @IsInt()
+  @Min(100)
+  public LOCATION_BATCH_INTERVAL_MS: number = 1000;
+  
+  /**
+   * Driver tracking settings
+   */
+  @IsInt()
+  @Min(1)
+  public DRIVER_LOCATION_TTL_SECONDS: number = 300;
+  
+  @IsInt()
+  @Min(1)
+  public MAX_CONCURRENT_CONNECTIONS: number = 10000;
+  
+  @IsInt()
+  @Min(500)
+  public CLIENT_POLLING_INTERVAL_MS: number = 1000;
 }

@@ -13,11 +13,11 @@ This file tracks the status of all tasks under the `tasks/` directory. Update th
 | --- | --------------------------------------------------------------------------------- | ------- | ----------- | ----- | ----------- |
 | 001 | [Setup Project Structure](./001-setup-project-structure.md)                       | Phase 1 | Done        |       | 2025-08-19  |
 | 002 | [User Authentication & Profiles](./002-user-authentication-profiles.md)           | Phase 1 | Done        |       | 2025-08-19  |
-| 003 | [Restaurant & Menu Catalog](./003-restaurant-menu-catalog.md)                     | Phase 1 | In Progress |       | 2025-08-19  |
-| 004 | [Order Management](./004-order-management.md)                                     | Phase 1 | Not Started |       |             |
-| 005 | [Payment Gateway Integration](./005-payment-gateway-integration.md)               | Phase 1 | Not Started |       |             |
-| 006 | [Real-Time Driver Tracking](./006-real-time-driver-tracking.md)                   | Phase 2 | Not Started |       |             |
-| 007 | [Driver Simulator](./007-driver-simulator.md)                                     | Phase 2 | Not Started |       |             |
+| 003 | [Restaurant & Menu Catalog](./003-restaurant-menu-catalog.md)                     | Phase 1 | Done        |       | 2025-09-13  |
+| 004 | [Order Management](./004-order-management.md)                                     | Phase 1 | Done        |       | 2025-09-13  |
+| 005 | [Payment Gateway Integration](./005-payment-gateway-integration.md)               | Phase 1 | Done        |       | 2025-09-13  |
+| 006 | [Real-Time Driver Tracking](./006-real-time-driver-tracking.md)                   | Phase 2 | Done        |       | 2025-09-13  |
+| 007 | [Driver Simulator](./007-driver-simulator.md)                                     | Phase 2 | Done        |       | 2025-09-13  |
 | 008 | [Geofencing & Proximity Search](./008-geofencing-proximity-search.md)             | Phase 2 | Not Started |       |             |
 | 009 | [Real-Time Notifications](./009-real-time-notifications.md)                       | Phase 2 | Not Started |       |             |
 | 010 | [Circuit Breaker Implementation](./010-circuit-breaker-implementation.md)         | Phase 3 | Not Started |       |             |
@@ -34,14 +34,14 @@ This file tracks the status of all tasks under the `tasks/` directory. Update th
 
 - [x] 001: [Setup Project Structure](./001-setup-project-structure.md)
 - [x] 002: [User Authentication & Profiles](./002-user-authentication-profiles.md)
-- [ ] 003: [Restaurant & Menu Catalog](./003-restaurant-menu-catalog.md)
-- [ ] 004: [Order Management](./004-order-management.md)
-- [ ] 005: [Payment Gateway Integration](./005-payment-gateway-integration.md)
+- [x] 003: [Restaurant & Menu Catalog](./003-restaurant-menu-catalog.md)
+- [x] 004: [Order Management](./004-order-management.md)
+- [x] 005: [Payment Gateway Integration](./005-payment-gateway-integration.md)
 
 ### Phase 2 – Real-Time Features
 
-- [ ] 006: [Real-Time Driver Tracking](./006-real-time-driver-tracking.md)
-- [ ] 007: [Driver Simulator](./007-driver-simulator.md)
+- [x] 006: [Real-Time Driver Tracking](./006-real-time-driver-tracking.md)
+- [x] 007: [Driver Simulator](./007-driver-simulator.md)
 - [ ] 008: [Geofencing & Proximity Search](./008-geofencing-proximity-search.md)
 - [ ] 009: [Real-Time Notifications](./009-real-time-notifications.md)
 
