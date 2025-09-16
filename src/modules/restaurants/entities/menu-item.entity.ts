@@ -8,45 +8,45 @@ import { MenuCategoryEntity } from './menu-category.entity';
 @Entity('menu_items')
 export class MenuItemEntity {
   @PrimaryGeneratedColumn('uuid')
-  readonly id!: string;
+  id!: string;
 
   @Column({ type: 'uuid' })
   @Index()
-  readonly restaurantId!: string;
+  restaurantId!: string;
 
   @ManyToOne(() => RestaurantEntity, restaurant => restaurant.menuItems, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'restaurantId' })
-  readonly restaurant!: RestaurantEntity;
+  restaurant!: RestaurantEntity;
 
   @Column({ type: 'uuid', nullable: true })
   @Index()
-  readonly categoryId?: string;
+  categoryId?: string;
 
   @ManyToOne(() => MenuCategoryEntity, category => category.menuItems, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'categoryId' })
-  readonly category?: MenuCategoryEntity;
+  category?: MenuCategoryEntity;
 
   @Column({ type: 'varchar', length: 255 })
-  readonly name!: string;
+  name!: string;
 
   @Column({ type: 'varchar', length: 1000, nullable: true })
-  readonly description?: string;
+  description?: string;
 
   @Column({ type: 'integer' })
-  readonly priceCents!: number;
+  priceCents!: number;
 
   @Column({ type: 'varchar', length: 3 })
-  readonly currency!: string;
+  currency!: string;
 
   @Column({ type: 'boolean', default: true })
-  readonly isAvailable!: boolean;
+  isAvailable!: boolean;
 
   @Column({ type: 'simple-array', nullable: true })
-  readonly tags?: string[];
+  tags?: string[];
 
   @Column({ type: 'varchar', length: 1000, nullable: true })
-  readonly imageUrl?: string;
+  imageUrl?: string;
 
   @Column({ type: 'integer' })
-  readonly displayOrder!: number;
+  displayOrder!: number;
 }

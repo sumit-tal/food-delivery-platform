@@ -8,7 +8,7 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 @Injectable()
 export class DatabaseConnectionService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DatabaseConnectionService.name);
-  private dataSource: DataSource;
+  private dataSource!: DataSource;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -82,7 +82,7 @@ export class DatabaseConnectionService implements OnModuleInit, OnModuleDestroy 
     if (!this.dataSource || !this.dataSource.isInitialized) {
       return 0;
     }
-    
+
     // TypeORM doesn't expose pool stats directly, but we can get the configured size
     return this.configService.get<number>('DB_POOL_SIZE', 50);
   }
@@ -95,17 +95,21 @@ export class DatabaseConnectionService implements OnModuleInit, OnModuleDestroy 
     if (!this.dataSource || !this.dataSource.isInitialized) {
       return 0;
     }
-    
+
     try {
       // Execute a query to get the number of active connections
       const result = await this.dataSource.query(
         "SELECT count(*) as count FROM pg_stat_activity WHERE datname = $1 AND state = 'active'",
-        [this.configService.get<string>('DB_DATABASE', 'swifteats')]
+        [this.configService.get<string>('DB_DATABASE', 'swifteats')],
       );
-      
+
       return parseInt(result[0].count, 10);
     } catch (error) {
-      this.logger.error('Error getting active connections', error);
+      if (error instanceof Error) {
+        this.logger.error('Error getting active connections', error.stack);
+      } else {
+        this.logger.error('Error getting active connections');
+      }
       return 0;
     }
   }

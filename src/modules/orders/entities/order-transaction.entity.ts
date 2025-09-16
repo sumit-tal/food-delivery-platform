@@ -11,23 +11,23 @@ export class OrderTransactionEntity {
 
   @Column({ type: 'uuid', nullable: true })
   @Index()
-  readonly orderId?: string;
+  orderId?: string;
 
   @Column({ type: 'varchar', length: 20, default: 'pending' })
-  readonly status!: string;
+  status!: string;
 
   @Column({ type: 'jsonb' })
-  readonly requestPayload!: Record<string, unknown>;
+  requestPayload!: Record<string, unknown>;
 
   @Column({ type: 'jsonb', nullable: true })
-  readonly responsePayload?: Record<string, unknown>;
+  responsePayload?: Record<string, unknown>;
 
   @Column({ type: 'integer', default: 1 })
-  readonly attempts!: number;
+  attempts!: number;
 
   @CreateDateColumn()
-  readonly createdAt!: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  readonly updatedAt!: Date;
+  updatedAt!: Date;
 }

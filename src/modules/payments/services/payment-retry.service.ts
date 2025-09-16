@@ -1,6 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, LessThanOrEqual } from 'typeorm';
 import { PaymentFailureQueueEntity } from '../entities/payment-failure-queue.entity';
 import { PaymentEntity } from '../entities/payment.entity';
 import { CircuitBreakerService } from './circuit-breaker.service';
@@ -11,16 +11,16 @@ import { CircuitBreakerService } from './circuit-breaker.service';
 export interface RetryConfig {
   /** Maximum number of retry attempts */
   maxRetries: number;
-  
+
   /** Initial delay in ms before first retry */
   initialDelayMs: number;
-  
+
   /** Maximum delay in ms between retries */
   maxDelayMs: number;
-  
+
   /** Multiplier for exponential backoff */
   backoffMultiplier: number;
-  
+
   /** Random factor to add jitter to retry timing (0-1) */
   jitterFactor: number;
 }
@@ -31,14 +31,14 @@ export interface RetryConfig {
 @Injectable()
 export class PaymentRetryService {
   private readonly logger = new Logger(PaymentRetryService.name);
-  
+
   /** Default retry configuration */
   private readonly defaultConfig: RetryConfig = {
     maxRetries: 5,
-    initialDelayMs: 1000,  // 1 second
-    maxDelayMs: 60000,     // 1 minute
+    initialDelayMs: 1000, // 1 second
+    maxDelayMs: 60000, // 1 minute
     backoffMultiplier: 2,
-    jitterFactor: 0.2
+    jitterFactor: 0.2,
   };
 
   constructor(
@@ -46,7 +46,7 @@ export class PaymentRetryService {
     private readonly failureQueueRepository: Repository<PaymentFailureQueueEntity>,
     @InjectRepository(PaymentEntity)
     private readonly paymentRepository: Repository<PaymentEntity>,
-    private readonly circuitBreakerService: CircuitBreakerService
+    private readonly circuitBreakerService: CircuitBreakerService,
   ) {}
 
   /**
@@ -60,7 +60,7 @@ export class PaymentRetryService {
     payment: PaymentEntity,
     error: Error,
     paymentDetails: Record<string, unknown>,
-    gatewayResponse?: Record<string, unknown>
+    gatewayResponse?: Record<string, unknown>,
   ): Promise<PaymentFailureQueueEntity> {
     const failureQueueItem = this.failureQueueRepository.create({
       paymentId: payment.id,
@@ -74,7 +74,7 @@ export class PaymentRetryService {
       retryCount: 0,
       paymentDetails,
       gatewayResponse,
-      nextRetryAt: this.calculateNextRetryTime(0)
+      nextRetryAt: this.calculateNextRetryTime(0),
     });
 
     return this.failureQueueRepository.save(failureQueueItem);
@@ -89,9 +89,9 @@ export class PaymentRetryService {
     const itemsDueForRetry = await this.failureQueueRepository.find({
       where: {
         resolved: false,
-        nextRetryAt: { lte: new Date() }
+        nextRetryAt: LessThanOrEqual(new Date()),
       },
-      take: 10 // Process in batches
+      take: 10, // Process in batches
     });
 
     if (itemsDueForRetry.length === 0) {
@@ -114,30 +114,34 @@ export class PaymentRetryService {
 
         // Check if max retries reached
         if (item.retryCount >= this.defaultConfig.maxRetries) {
-          this.logger.warn(`Max retries (${this.defaultConfig.maxRetries}) reached for payment ${item.paymentId}, moving to manual intervention`);
-          
+          this.logger.warn(
+            `Max retries (${this.defaultConfig.maxRetries}) reached for payment ${item.paymentId}, moving to manual intervention`,
+          );
+
           await this.failureQueueRepository.update(item.id, {
             retryCount: item.retryCount + 1,
             lastRetryAt: new Date(),
-            nextRetryAt: null // No more automatic retries
+            nextRetryAt: null, // No more automatic retries
           });
-          
+
           continue;
         }
 
         // TODO: Implement actual retry logic with payment gateway
         // This would call the payment gateway service to retry the payment
-        
+
         // For now, just update the retry count and next retry time
         await this.failureQueueRepository.update(item.id, {
           retryCount: item.retryCount + 1,
           lastRetryAt: new Date(),
-          nextRetryAt: this.calculateNextRetryTime(item.retryCount + 1)
+          nextRetryAt: this.calculateNextRetryTime(item.retryCount + 1),
         });
 
         processedCount++;
       } catch (error) {
-        this.logger.error(`Error processing retry for payment ${item.paymentId}: ${(error as Error).message}`);
+        this.logger.error(
+          `Error processing retry for payment ${item.paymentId}: ${(error as Error).message}`,
+        );
       }
     }
 
@@ -153,18 +157,24 @@ export class PaymentRetryService {
   async markAsResolved(
     failureId: string,
     notes: string,
-    resolvedBy: string
+    resolvedBy: string,
   ): Promise<PaymentFailureQueueEntity> {
     await this.failureQueueRepository.update(failureId, {
       resolved: true,
       resolutionNotes: notes,
       resolvedBy,
-      resolvedAt: new Date()
+      resolvedAt: new Date(),
     });
 
-    return this.failureQueueRepository.findOne({
-      where: { id: failureId }
+    const updated = await this.failureQueueRepository.findOne({
+      where: { id: failureId },
     });
+
+    if (!updated) {
+      throw new NotFoundException(`Payment failure queue item not found for id: ${failureId}`);
+    }
+
+    return updated;
   }
 
   /**
@@ -176,7 +186,7 @@ export class PaymentRetryService {
     return this.failureQueueRepository.find({
       where: { resolved: false },
       order: { createdAt: 'ASC' },
-      take: limit
+      take: limit,
     });
   }
 
@@ -187,20 +197,21 @@ export class PaymentRetryService {
    */
   private calculateNextRetryTime(retryCount: number): Date {
     // Calculate delay with exponential backoff
-    const exponentialDelay = this.defaultConfig.initialDelayMs * 
+    const exponentialDelay =
+      this.defaultConfig.initialDelayMs *
       Math.pow(this.defaultConfig.backoffMultiplier, retryCount);
-    
+
     // Apply maximum delay cap
     const cappedDelay = Math.min(exponentialDelay, this.defaultConfig.maxDelayMs);
-    
+
     // Add jitter to prevent thundering herd problem
     const jitter = cappedDelay * this.defaultConfig.jitterFactor * (Math.random() * 2 - 1);
     const finalDelay = Math.max(0, cappedDelay + jitter);
-    
+
     // Calculate next retry time
     const nextRetryTime = new Date();
     nextRetryTime.setTime(nextRetryTime.getTime() + finalDelay);
-    
+
     return nextRetryTime;
   }
 }

@@ -14,7 +14,7 @@ export class IdempotencyService {
   constructor(
     @InjectRepository(OrderTransactionEntity)
     private readonly transactionRepository: Repository<OrderTransactionEntity>,
-    private readonly transactionService: TransactionService
+    private readonly transactionService: TransactionService,
   ) {}
 
   /**
@@ -24,7 +24,7 @@ export class IdempotencyService {
    */
   async checkTransactionExists(transactionId: string): Promise<OrderTransactionEntity | null> {
     return this.transactionRepository.findOne({
-      where: { id: transactionId }
+      where: { id: transactionId },
     });
   }
 
@@ -36,13 +36,13 @@ export class IdempotencyService {
    */
   async recordTransaction(
     transactionId: string,
-    requestPayload: Record<string, unknown>
+    requestPayload: Record<string, unknown>,
   ): Promise<OrderTransactionEntity> {
     const transaction = this.transactionRepository.create({
       id: transactionId,
       status: 'pending',
       requestPayload,
-      attempts: 1
+      attempts: 1,
     });
 
     return this.transactionRepository.save(transaction);
@@ -53,22 +53,35 @@ export class IdempotencyService {
    * @param transactionId The transaction ID
    * @param orderId The order ID
    * @param responsePayload The response payload
-   * @returns The updated transaction
+   * @returns The updated transaction or null if not found
    */
   async completeTransaction(
     transactionId: string,
     orderId: string,
-    responsePayload?: Record<string, unknown>
-  ): Promise<OrderTransactionEntity> {
-    await this.transactionRepository.update(
-      { id: transactionId },
-      {
-        status: 'completed',
-        orderId,
-        responsePayload,
-        updatedAt: new Date()
-      }
-    );
+    responsePayload?: Record<string, unknown>,
+  ): Promise<OrderTransactionEntity | null> {
+    if (responsePayload !== undefined) {
+      await this.transactionRepository
+        .createQueryBuilder()
+        .update(OrderTransactionEntity)
+        .set({
+          status: 'completed',
+          orderId,
+          responsePayload: () => ':responsePayload',
+          updatedAt: new Date(),
+        })
+        .where('id = :id', { id: transactionId, responsePayload })
+        .execute();
+    } else {
+      await this.transactionRepository.update(
+        { id: transactionId },
+        {
+          status: 'completed',
+          orderId,
+          updatedAt: new Date(),
+        },
+      );
+    }
 
     return this.checkTransactionExists(transactionId);
   }
@@ -77,22 +90,22 @@ export class IdempotencyService {
    * Fail a transaction
    * @param transactionId The transaction ID
    * @param error The error that caused the failure
-   * @returns The updated transaction
+   * @returns The updated transaction or null if not found
    */
   async failTransaction(
     transactionId: string,
-    error: Error
-  ): Promise<OrderTransactionEntity> {
+    error: Error,
+  ): Promise<OrderTransactionEntity | null> {
     await this.transactionRepository.update(
       { id: transactionId },
       {
         status: 'failed',
         responsePayload: {
           error: error.message,
-          stack: error.stack
+          stack: error.stack,
         },
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     );
 
     return this.checkTransactionExists(transactionId);
@@ -101,14 +114,10 @@ export class IdempotencyService {
   /**
    * Increment the attempt count for a transaction
    * @param transactionId The transaction ID
-   * @returns The updated transaction
+   * @returns The updated transaction or null if not found
    */
-  async incrementAttempt(transactionId: string): Promise<OrderTransactionEntity> {
-    await this.transactionRepository.increment(
-      { id: transactionId },
-      'attempts',
-      1
-    );
+  async incrementAttempt(transactionId: string): Promise<OrderTransactionEntity | null> {
+    await this.transactionRepository.increment({ id: transactionId }, 'attempts', 1);
 
     return this.checkTransactionExists(transactionId);
   }
@@ -123,18 +132,20 @@ export class IdempotencyService {
   async executeWithIdempotency<T extends { id: string }>(
     transactionId: string,
     requestPayload: Record<string, unknown>,
-    operation: () => Promise<T>
+    operation: () => Promise<T>,
   ): Promise<T> {
     // Check if transaction already exists
     const existingTransaction = await this.checkTransactionExists(transactionId);
 
     if (existingTransaction) {
-      this.logger.log(`Transaction ${transactionId} already exists with status ${existingTransaction.status}`);
+      this.logger.log(
+        `Transaction ${transactionId} already exists with status ${existingTransaction.status}`,
+      );
 
       // If transaction is completed, return the stored result
       if (existingTransaction.status === 'completed' && existingTransaction.orderId) {
         this.logger.log(`Returning existing result for transaction ${transactionId}`);
-        
+
         // Cast to T since we know it's the same type
         return { id: existingTransaction.orderId } as T;
       }
@@ -153,11 +164,7 @@ export class IdempotencyService {
       const result = await operation();
 
       // Complete transaction
-      await this.completeTransaction(
-        transactionId,
-        result.id,
-        { result }
-      );
+      await this.completeTransaction(transactionId, result.id, { result });
 
       return result;
     } catch (error) {

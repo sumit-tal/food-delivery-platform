@@ -38,28 +38,28 @@ export class PaymentFailureQueueEntity {
   readonly retryCount!: number;
 
   @Column({ type: 'timestamp', nullable: true })
-  readonly lastRetryAt?: Date;
+  readonly lastRetryAt?: Date | null;
 
   @Column({ type: 'timestamp', nullable: true })
-  readonly nextRetryAt?: Date;
+  readonly nextRetryAt?: Date | null;
 
   @Column({ type: 'jsonb' })
   readonly paymentDetails!: Record<string, unknown>;
 
   @Column({ type: 'jsonb', nullable: true })
-  readonly gatewayResponse?: Record<string, unknown>;
+  readonly gatewayResponse?: Record<string, unknown> | null;
 
   @Column({ type: 'boolean', default: false })
   readonly resolved!: boolean;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  readonly resolutionNotes?: string;
+  readonly resolutionNotes?: string | null;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
-  readonly resolvedBy?: string;
+  readonly resolvedBy?: string | null;
 
   @Column({ type: 'timestamp', nullable: true })
-  readonly resolvedAt?: Date;
+  readonly resolvedAt?: Date | null;
 
   @CreateDateColumn()
   readonly createdAt!: Date;

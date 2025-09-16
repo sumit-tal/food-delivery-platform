@@ -7,44 +7,44 @@ import { MenuItemEntity } from './menu-item.entity';
 @Entity('restaurants')
 export class RestaurantEntity {
   @PrimaryGeneratedColumn('uuid')
-  readonly id!: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  readonly name!: string;
+  name!: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
   @Index()
-  readonly slug!: string;
+  slug!: string;
 
   @Column({ type: 'simple-array' })
-  readonly cuisineTypes!: string[];
+  cuisineTypes!: string[];
 
   @Column({ type: 'varchar', length: 100 })
   @Index()
-  readonly city!: string;
+  city!: string;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  readonly area?: string;
+  area?: string;
 
   @Column({ type: 'boolean', default: false })
   @Index()
-  readonly isOpen!: boolean;
+  isOpen!: boolean;
 
   @Column({ type: 'decimal', precision: 3, scale: 2, nullable: true })
-  readonly rating?: number;
+  rating?: number;
 
   @Column({ type: 'integer', nullable: true })
-  readonly etaMin?: number;
+  etaMin?: number;
 
   @Column({ type: 'integer', nullable: true })
-  readonly etaMax?: number;
+  etaMax?: number;
 
   @CreateDateColumn()
-  readonly createdAt!: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  readonly updatedAt!: Date;
+  updatedAt!: Date;
 
   @OneToMany(() => MenuItemEntity, menuItem => menuItem.restaurant)
-  readonly menuItems!: MenuItemEntity[];
+  menuItems!: MenuItemEntity[];
 }

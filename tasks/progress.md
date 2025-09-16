@@ -18,7 +18,7 @@ This file tracks the status of all tasks under the `tasks/` directory. Update th
 | 005 | [Payment Gateway Integration](./005-payment-gateway-integration.md)               | Phase 1 | Done        |       | 2025-09-13  |
 | 006 | [Real-Time Driver Tracking](./006-real-time-driver-tracking.md)                   | Phase 2 | Done        |       | 2025-09-13  |
 | 007 | [Driver Simulator](./007-driver-simulator.md)                                     | Phase 2 | Done        |       | 2025-09-13  |
-| 008 | [Geofencing & Proximity Search](./008-geofencing-proximity-search.md)             | Phase 2 | Not Started |       |             |
+| 008 | [Geofencing & Proximity Search](./008-geofencing-proximity-search.md)             | Phase 2 | Done        |       | 2025-09-15  |
 | 009 | [Real-Time Notifications](./009-real-time-notifications.md)                       | Phase 2 | Not Started |       |             |
 | 010 | [Circuit Breaker Implementation](./010-circuit-breaker-implementation.md)         | Phase 3 | Not Started |       |             |
 | 011 | [Enhanced Caching Layer](./011-enhanced-caching-layer.md)                         | Phase 3 | Not Started |       |             |
@@ -42,7 +42,7 @@ This file tracks the status of all tasks under the `tasks/` directory. Update th
 
 - [x] 006: [Real-Time Driver Tracking](./006-real-time-driver-tracking.md)
 - [x] 007: [Driver Simulator](./007-driver-simulator.md)
-- [ ] 008: [Geofencing & Proximity Search](./008-geofencing-proximity-search.md)
+- [x] 008: [Geofencing & Proximity Search](./008-geofencing-proximity-search.md)
 - [ ] 009: [Real-Time Notifications](./009-real-time-notifications.md)
 
 ### Phase 3 – Performance & Resilience

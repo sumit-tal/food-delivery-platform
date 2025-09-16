@@ -17,6 +17,7 @@
     "noImplicitAny": true,
     "moduleResolution": "node",
     "types": ["node", "jest"],
+    "useDefineForClassFields": false,
     "paths": {
       "src/*": ["src/*"]
     }

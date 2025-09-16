@@ -134,6 +134,9 @@ export interface PaymentResult {
   /** Success flag */
   success: boolean;
   
+  /** Internal payment ID */
+  id?: string;
+  
   /** Payment gateway's reference ID */
   paymentId?: string;
   

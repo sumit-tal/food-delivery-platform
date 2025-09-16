@@ -21,23 +21,24 @@ export class OrderProcessingService {
     try {
       // Get the order
       const order = await this.ordersService.getOrderById(orderId);
-      
+
       // Validate order data
       if (!order || !order.items || order.items.length === 0) {
         this.logger.error(`Invalid order data for order ${orderId}`);
         return;
       }
-      
+
       // Log the start of processing
       this.logger.log(`Starting processing for order ${orderId}`);
-      
+
       // Confirm the order (in a real system, this would involve payment processing)
       await this.confirmOrder(orderId);
-      
+
       // In a real system, we would send notifications to the restaurant
       this.logger.log(`Order ${orderId} confirmed and sent to restaurant`);
-    } catch (error) {
-      this.logger.error(`Error processing order ${orderId}: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error processing order ${orderId}: ${errorMessage}`);
       // In a real system, we would handle the error and potentially retry
     }
   }
@@ -49,16 +50,11 @@ export class OrderProcessingService {
   async confirmOrder(orderId: string): Promise<void> {
     const updateDto: UpdateOrderStatusDto = {
       status: OrderStatus.CONFIRMED,
-      note: 'Order confirmed automatically after validation'
+      note: 'Order confirmed automatically after validation',
     };
-    
-    await this.ordersService.updateOrderStatus(
-      orderId,
-      updateDto,
-      'system',
-      'system'
-    );
-    
+
+    await this.ordersService.updateOrderStatus(orderId, updateDto, 'system', 'system');
+
     this.logger.log(`Order ${orderId} confirmed`);
   }
 
@@ -70,16 +66,11 @@ export class OrderProcessingService {
   async markOrderAsPreparing(orderId: string, actorId: string): Promise<void> {
     const updateDto: UpdateOrderStatusDto = {
       status: OrderStatus.PREPARING,
-      note: 'Restaurant started preparing the order'
+      note: 'Restaurant started preparing the order',
     };
-    
-    await this.ordersService.updateOrderStatus(
-      orderId,
-      updateDto,
-      actorId,
-      'restaurant_owner'
-    );
-    
+
+    await this.ordersService.updateOrderStatus(orderId, updateDto, actorId, 'restaurant_owner');
+
     this.logger.log(`Order ${orderId} marked as preparing`);
   }
 
@@ -91,18 +82,13 @@ export class OrderProcessingService {
   async markOrderAsReadyForPickup(orderId: string, actorId: string): Promise<void> {
     const updateDto: UpdateOrderStatusDto = {
       status: OrderStatus.READY_FOR_PICKUP,
-      note: 'Order is ready for pickup by driver'
+      note: 'Order is ready for pickup by driver',
     };
-    
-    await this.ordersService.updateOrderStatus(
-      orderId,
-      updateDto,
-      actorId,
-      'restaurant_owner'
-    );
-    
+
+    await this.ordersService.updateOrderStatus(orderId, updateDto, actorId, 'restaurant_owner');
+
     this.logger.log(`Order ${orderId} marked as ready for pickup`);
-    
+
     // In a real system, we would notify available drivers
   }
 
@@ -114,10 +100,10 @@ export class OrderProcessingService {
   async assignDriverToOrder(orderId: string, driverId: string): Promise<void> {
     // Get the order
     const order = await this.ordersService.getOrderById(orderId);
-    
+
     // Update the order with the driver ID
     // In a real system, this would be a separate method in the orders service
-    
+
     this.logger.log(`Driver ${driverId} assigned to order ${orderId}`);
   }
 
@@ -129,18 +115,13 @@ export class OrderProcessingService {
   async markOrderAsOutForDelivery(orderId: string, driverId: string): Promise<void> {
     const updateDto: UpdateOrderStatusDto = {
       status: OrderStatus.OUT_FOR_DELIVERY,
-      note: 'Driver picked up the order and is on the way'
+      note: 'Driver picked up the order and is on the way',
     };
-    
-    await this.ordersService.updateOrderStatus(
-      orderId,
-      updateDto,
-      driverId,
-      'driver'
-    );
-    
+
+    await this.ordersService.updateOrderStatus(orderId, updateDto, driverId, 'driver');
+
     this.logger.log(`Order ${orderId} marked as out for delivery by driver ${driverId}`);
-    
+
     // In a real system, we would update the customer with the estimated delivery time
   }
 
@@ -152,18 +133,13 @@ export class OrderProcessingService {
   async markOrderAsDelivered(orderId: string, driverId: string): Promise<void> {
     const updateDto: UpdateOrderStatusDto = {
       status: OrderStatus.DELIVERED,
-      note: 'Order successfully delivered to customer'
+      note: 'Order successfully delivered to customer',
     };
-    
-    await this.ordersService.updateOrderStatus(
-      orderId,
-      updateDto,
-      driverId,
-      'driver'
-    );
-    
+
+    await this.ordersService.updateOrderStatus(orderId, updateDto, driverId, 'driver');
+
     this.logger.log(`Order ${orderId} marked as delivered by driver ${driverId}`);
-    
+
     // In a real system, we would send a confirmation to the customer
     // and potentially ask for a review
   }
@@ -176,25 +152,20 @@ export class OrderProcessingService {
    * @param reason The reason for cancellation
    */
   async cancelOrder(
-    orderId: string, 
-    actorId: string, 
+    orderId: string,
+    actorId: string,
     actorType: string,
-    reason: string
+    reason: string,
   ): Promise<void> {
     const updateDto: UpdateOrderStatusDto = {
       status: OrderStatus.CANCELLED,
-      note: `Order cancelled by ${actorType}: ${reason}`
+      note: `Order cancelled by ${actorType}: ${reason}`,
     };
-    
-    await this.ordersService.updateOrderStatus(
-      orderId,
-      updateDto,
-      actorId,
-      actorType
-    );
-    
+
+    await this.ordersService.updateOrderStatus(orderId, updateDto, actorId, actorType);
+
     this.logger.log(`Order ${orderId} cancelled by ${actorType} ${actorId}: ${reason}`);
-    
+
     // In a real system, we would handle refunds if payment was already processed
   }
 }

@@ -1,12 +1,12 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, DataSource } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 
 import { RestaurantEntity } from '../entities/restaurant.entity';
 import { MenuEntity } from '../entities/menu.entity';
 import { MenuItemEntity } from '../entities/menu-item.entity';
-import { MenuCategoryEntity } from '../entities/menu-category.entity';
+// import { MenuCategoryEntity } from '../entities/menu-category.entity';
 
 import type { RestaurantModel, PublicRestaurant } from '../models/restaurant.model';
 import type { MenuItemModel, MenuModel } from '../models/menu.model';
@@ -25,8 +25,6 @@ export class PostgresRestaurantsRepository {
     private readonly menuRepository: Repository<MenuEntity>,
     @InjectRepository(MenuItemEntity)
     private readonly menuItemRepository: Repository<MenuItemEntity>,
-    @InjectRepository(MenuCategoryEntity)
-    private readonly menuCategoryRepository: Repository<MenuCategoryEntity>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -39,7 +37,7 @@ export class PostgresRestaurantsRepository {
       id: uuidv4(),
       name: data.name,
       slug,
-      cuisineTypes: data.cuisineTypes,
+      cuisineTypes: [...data.cuisineTypes],
       city: data.city,
       area: data.area,
       isOpen: data.isOpen ?? false,
@@ -78,7 +76,7 @@ export class PostgresRestaurantsRepository {
       .orderBy('restaurant.name', 'ASC');
 
     const restaurants = await query.getMany();
-    return restaurants.map(r => this.toPublic(r));
+    return restaurants.map((r) => this.toPublic(r));
   }
 
   /**
@@ -89,16 +87,16 @@ export class PostgresRestaurantsRepository {
     if (!restaurant) {
       throw new NotFoundException('Restaurant not found');
     }
-    return restaurant;
+    return this.toModel(restaurant);
   }
 
   /**
    * Upserts full menu for a restaurant with optimistic version check.
    */
   public async upsertMenu(
-    restaurantId: string, 
-    items: readonly MenuItemModel[], 
-    expectedVersion?: number
+    restaurantId: string,
+    items: readonly MenuItemModel[],
+    expectedVersion?: number,
   ): Promise<MenuModel> {
     // Start a transaction
     return this.dataSource.transaction(async (manager) => {
@@ -109,7 +107,11 @@ export class PostgresRestaurantsRepository {
       });
 
       // Check version if expectedVersion is provided
-      if (typeof expectedVersion === 'number' && currentMenu && currentMenu.version !== expectedVersion) {
+      if (
+        typeof expectedVersion === 'number' &&
+        currentMenu &&
+        currentMenu.version !== expectedVersion
+      ) {
         throw new ConflictException('Menu version mismatch');
       }
 
@@ -135,7 +137,7 @@ export class PostgresRestaurantsRepository {
       await manager.delete(MenuItemEntity, { restaurantId });
 
       // Create and save new menu items
-      const menuItems = items.map((item, index) => 
+      const menuItems = items.map((item, index) =>
         manager.create(MenuItemEntity, {
           id: item.id || uuidv4(),
           restaurantId,
@@ -144,10 +146,10 @@ export class PostgresRestaurantsRepository {
           priceCents: item.priceCents,
           currency: item.currency,
           isAvailable: item.isAvailable,
-          tags: item.tags,
+          tags: item.tags ? [...item.tags] : undefined,
           imageUrl: item.imageUrl,
           displayOrder: index,
-        })
+        }),
       );
 
       await manager.save(menuItems);
@@ -156,7 +158,7 @@ export class PostgresRestaurantsRepository {
       return {
         restaurantId,
         version,
-        items: menuItems.map(item => ({
+        items: menuItems.map((item) => ({
           id: item.id,
           restaurantId: item.restaurantId,
           name: item.name,
@@ -164,7 +166,7 @@ export class PostgresRestaurantsRepository {
           priceCents: item.priceCents,
           currency: item.currency,
           isAvailable: item.isAvailable,
-          tags: item.tags || [],
+          tags: (item.tags ? [...item.tags] : []) as readonly string[],
           imageUrl: item.imageUrl,
         })),
       };
@@ -194,7 +196,7 @@ export class PostgresRestaurantsRepository {
     return {
       restaurantId,
       version: menu.version,
-      items: items.map(item => ({
+      items: items.map((item) => ({
         id: item.id,
         restaurantId: item.restaurantId,
         name: item.name,
@@ -202,7 +204,7 @@ export class PostgresRestaurantsRepository {
         priceCents: item.priceCents,
         currency: item.currency,
         isAvailable: item.isAvailable,
-        tags: item.tags || [],
+        tags: (item.tags ? [...item.tags] : []) as readonly string[],
         imageUrl: item.imageUrl,
       })),
     };
@@ -215,13 +217,13 @@ export class PostgresRestaurantsRepository {
     const baseSlug = slugify(name);
     let slug = baseSlug;
     let counter = 1;
-    
+
     // Keep checking until we find a unique slug
     while (await this.slugExists(slug)) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
-    
+
     return slug;
   }
 
@@ -248,6 +250,26 @@ export class PostgresRestaurantsRepository {
       rating: r.rating,
       etaMin: r.etaMin,
       etaMax: r.etaMax,
+    };
+  }
+
+  /**
+   * Converts a restaurant entity to the full restaurant model
+   */
+  private toModel(r: RestaurantEntity): RestaurantModel {
+    return {
+      id: r.id,
+      name: r.name,
+      slug: r.slug,
+      cuisineTypes: r.cuisineTypes,
+      city: r.city,
+      area: r.area,
+      isOpen: r.isOpen,
+      rating: r.rating,
+      etaMin: r.etaMin,
+      etaMax: r.etaMax,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
     };
   }
 }

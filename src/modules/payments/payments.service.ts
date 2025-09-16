@@ -4,11 +4,12 @@ import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { PaymentEntity } from './entities/payment.entity';
 import { PaymentFailureQueueEntity } from './entities/payment-failure-queue.entity';
-import { 
-  PaymentGateway, 
-  PaymentDetails, 
-  PaymentResult, 
-  PaymentStatus 
+import {
+  PaymentGateway,
+  PaymentDetails,
+  PaymentResult,
+  PaymentStatus,
+  PaymentMethodType,
 } from './interfaces/payment-gateway.interface';
 import { CircuitBreakerService } from './services/circuit-breaker.service';
 import { PaymentRetryService } from './services/payment-retry.service';
@@ -32,7 +33,7 @@ export class PaymentsService {
     private readonly paymentRetryService: PaymentRetryService,
     private readonly paymentCacheService: PaymentCacheService,
     private readonly idempotencyService: IdempotencyService,
-    private readonly ordersService: OrdersService
+    private readonly ordersService: OrdersService,
   ) {}
 
   /**
@@ -53,27 +54,22 @@ export class PaymentsService {
     paymentMethod: Record<string, unknown>,
     customerId: string,
     customerEmail: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): Promise<PaymentResult> {
     // Generate idempotency key
     const idempotencyKey = uuidv4();
 
     // Create payment details
-    const paymentDetails: PaymentDetails = {
+    const paymentDetails = this.createPaymentDetailsObject(
       orderId,
       amount,
       currency,
-      paymentMethod: {
-        type: paymentMethod.type as any,
-        details: paymentMethod
-      },
-      customer: {
-        id: customerId,
-        email: customerEmail
-      },
+      paymentMethod,
+      customerId,
+      customerEmail,
       idempotencyKey,
-      metadata
-    };
+      metadata,
+    );
 
     // Check for cached response (duplicate request)
     const cachedResult = this.paymentCacheService.get(idempotencyKey);
@@ -87,60 +83,7 @@ export class PaymentsService {
 
     try {
       // Process payment with circuit breaker protection
-      const result = await this.circuitBreakerService.executeWithCircuitBreaker(
-        'payment-gateway',
-        async () => {
-          // Execute the payment with idempotency check
-          return this.idempotencyService.executeWithIdempotency(
-            idempotencyKey,
-            paymentDetails,
-            async () => {
-              // Authorize payment
-              const authResult = await this.paymentGateway.authorizePayment(paymentDetails);
-
-              // Store payment record
-              const payment = await this.createPaymentRecord(
-                orderId,
-                authResult.paymentId,
-                idempotencyKey,
-                amount,
-                currency,
-                authResult.status,
-                paymentMethod,
-                authResult.gatewayResponse,
-                authResult.errorCode,
-                authResult.errorMessage
-              );
-
-              // If payment was successful, capture it
-              if (authResult.success && authResult.status === PaymentStatus.AUTHORIZED) {
-                const captureResult = await this.paymentGateway.capturePayment(authResult.paymentId);
-
-                // Update payment record with capture result
-                await this.updatePaymentRecord(
-                  payment.id,
-                  captureResult.status,
-                  captureResult.gatewayResponse,
-                  captureResult.errorCode,
-                  captureResult.errorMessage
-                );
-
-                // Return the capture result
-                return {
-                  id: payment.id,
-                  ...captureResult
-                };
-              }
-
-              // Return the authorization result
-              return {
-                id: payment.id,
-                ...authResult
-              };
-            }
-          );
-        }
-      );
+      const result = await this.executePaymentWithProtection(paymentDetails, idempotencyKey);
 
       // Cache the successful result
       if (result.success) {
@@ -152,22 +95,202 @@ export class PaymentsService {
 
       return result;
     } catch (error) {
-      this.logger.error(`Payment processing error: ${error.message}`, error.stack);
-      
-      // Create a failure result
-      const failureResult: PaymentResult = {
-        success: false,
-        status: PaymentStatus.FAILED,
-        errorCode: 'payment_processing_error',
-        errorMessage: error.message,
-        timestamp: new Date()
-      };
-
-      // Handle failed payment
-      await this.handleFailedPayment(failureResult, error);
-
-      return failureResult;
+      return this.handlePaymentProcessingError(error as Error);
     }
+  }
+
+  /**
+   * Create payment details object
+   * @param orderId The order ID
+   * @param amount The payment amount
+   * @param currency The currency code
+   * @param paymentMethod The payment method details
+   * @param customerId The customer ID
+   * @param customerEmail The customer email
+   * @param idempotencyKey The idempotency key
+   * @param metadata Additional metadata
+   * @returns Payment details object
+   */
+  private createPaymentDetailsObject(
+    orderId: string,
+    amount: number,
+    currency: string,
+    paymentMethod: Record<string, unknown>,
+    customerId: string,
+    customerEmail: string,
+    idempotencyKey: string,
+    metadata?: Record<string, unknown>,
+  ): PaymentDetails {
+    return {
+      orderId,
+      amount,
+      currency,
+      paymentMethod: {
+        type: paymentMethod.type as PaymentMethodType,
+        details: paymentMethod,
+      },
+      customer: {
+        id: customerId,
+        email: customerEmail,
+      },
+      idempotencyKey,
+      metadata,
+    };
+  }
+
+  /**
+   * Check for cached payment result
+   * @param idempotencyKey The idempotency key
+   * @returns Cached payment result or null
+   */
+  private checkCachedPaymentResult(idempotencyKey: string): PaymentResult | null {
+    const cachedResult = this.paymentCacheService.get(idempotencyKey);
+    if (cachedResult) {
+      this.logger.log(`Returning cached payment result for idempotency key ${idempotencyKey}`);
+    }
+    return cachedResult;
+  }
+
+  /**
+   * Execute payment with circuit breaker and idempotency protection
+   * @param paymentDetails The payment details
+   * @param idempotencyKey The idempotency key
+   * @returns Payment result
+   */
+  private async executePaymentWithProtection(
+    paymentDetails: PaymentDetails,
+    idempotencyKey: string,
+  ): Promise<PaymentResult> {
+    return this.circuitBreakerService.executeWithCircuitBreaker('payment-gateway', async () => {
+      // Execute the payment with idempotency check
+      // We need to use a type that satisfies the IdempotencyService's constraint
+      type IdempotentPaymentResult = PaymentResult & { id: string };
+
+      const result = await this.idempotencyService.executeWithIdempotency<IdempotentPaymentResult>(
+        idempotencyKey,
+        paymentDetails as unknown as Record<string, unknown>,
+        async () => {
+          // Process the payment and ensure it has an id
+          const paymentResult = await this.processPaymentTransaction(paymentDetails);
+          return { ...paymentResult, id: paymentResult.id || 'pending' } as IdempotentPaymentResult;
+        },
+      );
+      return result;
+    });
+  }
+
+  /**
+   * Process the actual payment transaction
+   * @param paymentDetails The payment details
+   * @returns Payment result
+   */
+  private async processPaymentTransaction(paymentDetails: PaymentDetails): Promise<PaymentResult> {
+    // Authorize payment
+    const authResult = await this.paymentGateway.authorizePayment(paymentDetails);
+
+    // Store payment record
+    const payment = await this.createPaymentRecord(
+      paymentDetails.orderId,
+      authResult.paymentId || '',
+      paymentDetails.idempotencyKey,
+      paymentDetails.amount,
+      paymentDetails.currency,
+      authResult.status || PaymentStatus.FAILED,
+      paymentDetails.paymentMethod.details,
+      authResult.gatewayResponse,
+      authResult.errorCode,
+      authResult.errorMessage,
+    );
+
+    // If payment was successful, capture it
+    if (authResult.success && authResult.status === PaymentStatus.AUTHORIZED) {
+      return this.captureAuthorizedPayment(payment, authResult);
+    }
+
+    // Return the authorization result
+    return {
+      id: payment.id,
+      success: authResult.success,
+      status: authResult.status,
+      errorCode: authResult.errorCode,
+      errorMessage: authResult.errorMessage,
+      gatewayResponse: authResult.gatewayResponse,
+      paymentId: authResult.paymentId,
+      timestamp: authResult.timestamp || new Date(),
+    };
+  }
+
+  /**
+   * Capture an authorized payment
+   * @param payment The payment entity
+   * @param authResult The authorization result
+   * @returns Payment result
+   */
+  private async captureAuthorizedPayment(
+    payment: PaymentEntity,
+    authResult: PaymentResult,
+  ): Promise<PaymentResult> {
+    const captureResult = await this.paymentGateway.capturePayment(authResult.paymentId || '');
+
+    // Update payment record with capture result
+    await this.updatePaymentRecord(
+      payment.id,
+      captureResult.status || PaymentStatus.FAILED,
+      captureResult.gatewayResponse,
+      captureResult.errorCode,
+      captureResult.errorMessage,
+    );
+
+    // Return the capture result
+    return {
+      id: payment.id,
+      success: captureResult.success,
+      status: captureResult.status,
+      errorCode: captureResult.errorCode,
+      errorMessage: captureResult.errorMessage,
+      gatewayResponse: captureResult.gatewayResponse,
+      paymentId: captureResult.paymentId,
+      timestamp: captureResult.timestamp || new Date(),
+    };
+  }
+
+  /**
+   * Handle the payment result
+   * @param result The payment result
+   * @param idempotencyKey The idempotency key
+   */
+  private async handlePaymentResult(result: PaymentResult, idempotencyKey: string): Promise<void> {
+    // Cache the successful result
+    if (result.success) {
+      this.paymentCacheService.set(idempotencyKey, result);
+    } else {
+      // Handle failed payment
+      await this.handleFailedPayment(result);
+    }
+  }
+
+  /**
+   * Handle payment processing error
+   * @param err The error that occurred
+   * @returns Failure result
+   */
+  private async handlePaymentProcessingError(err: Error): Promise<PaymentResult> {
+    this.logger.error(`Payment processing error: ${err.message}`, err.stack);
+
+    // Create a failure result
+    const failureResult: PaymentResult = {
+      success: false,
+      status: PaymentStatus.FAILED,
+      errorCode: 'payment_processing_error',
+      errorMessage: err.message,
+      timestamp: new Date(),
+      id: undefined, // Will be set after payment record is created
+    };
+
+    // Handle failed payment
+    await this.handleFailedPayment(failureResult, err);
+
+    return failureResult;
   }
 
   /**
@@ -175,9 +298,9 @@ export class PaymentsService {
    * @param paymentId The payment ID
    * @returns The payment entity
    */
-  async getPaymentById(paymentId: string): Promise<PaymentEntity> {
+  async getPaymentById(paymentId: string): Promise<PaymentEntity | null> {
     return this.paymentRepository.findOne({
-      where: { id: paymentId }
+      where: { id: paymentId },
     });
   }
 
@@ -189,7 +312,7 @@ export class PaymentsService {
   async getPaymentsByOrderId(orderId: string): Promise<PaymentEntity[]> {
     return this.paymentRepository.find({
       where: { orderId },
-      order: { createdAt: 'DESC' }
+      order: { createdAt: 'DESC' },
     });
   }
 
@@ -202,7 +325,7 @@ export class PaymentsService {
   async refundPayment(paymentId: string, amount?: number): Promise<PaymentResult> {
     // Get payment record
     const payment = await this.getPaymentById(paymentId);
-    
+
     if (!payment) {
       throw new Error(`Payment ${paymentId} not found`);
     }
@@ -219,30 +342,32 @@ export class PaymentsService {
         async () => {
           // Refund payment
           return this.paymentGateway.refundPayment(payment.gatewayPaymentId, amount);
-        }
+        },
       );
 
       // Update payment record with refund result
       await this.updatePaymentRecord(
         payment.id,
-        result.status,
+        result.status || PaymentStatus.REFUNDED,
         result.gatewayResponse,
         result.errorCode,
         result.errorMessage,
-        amount || payment.amount
+        amount || payment.amount,
       );
 
       return result;
     } catch (error) {
-      this.logger.error(`Refund processing error: ${error.message}`, error.stack);
-      
+      const err = error as Error;
+      this.logger.error(`Refund processing error: ${err.message}`, err.stack);
+
       // Create a failure result
       return {
         success: false,
         status: PaymentStatus.FAILED,
         errorCode: 'refund_processing_error',
-        errorMessage: error.message,
-        timestamp: new Date()
+        errorMessage: err.message,
+        timestamp: new Date(),
+        id: payment.id, // Include the payment ID
       };
     }
   }
@@ -271,7 +396,7 @@ export class PaymentsService {
     paymentMethod: Record<string, unknown>,
     gatewayResponse?: Record<string, unknown>,
     errorCode?: string,
-    errorMessage?: string
+    errorMessage?: string,
   ): Promise<PaymentEntity> {
     const payment = this.paymentRepository.create({
       orderId,
@@ -283,7 +408,7 @@ export class PaymentsService {
       paymentMethod,
       gatewayResponse,
       errorCode,
-      errorMessage
+      errorMessage,
     });
 
     return this.paymentRepository.save(payment);
@@ -305,13 +430,15 @@ export class PaymentsService {
     gatewayResponse?: Record<string, unknown>,
     errorCode?: string,
     errorMessage?: string,
-    refundedAmount?: number
-  ): Promise<PaymentEntity> {
-    const updateData: Partial<PaymentEntity> = {
+    refundedAmount?: number,
+  ): Promise<PaymentEntity | null> {
+    // Create a plain object for the update operation instead of using Partial<PaymentEntity>
+    // This avoids the readonly property assignment issues
+    const updateData: Record<string, unknown> = {
       status,
       gatewayResponse,
       errorCode,
-      errorMessage
+      errorMessage,
     };
 
     if (refundedAmount !== undefined) {
@@ -330,9 +457,7 @@ export class PaymentsService {
    */
   private async handleFailedPayment(result: PaymentResult, error?: Error): Promise<void> {
     // Get payment record if available
-    const payment = result.paymentId 
-      ? await this.getPaymentById(result.paymentId)
-      : null;
+    const payment = result.id ? await this.getPaymentById(result.id) : null;
 
     if (!payment) {
       this.logger.warn('Cannot handle failed payment: payment record not found');
@@ -348,9 +473,9 @@ export class PaymentsService {
         amount: payment.amount,
         currency: payment.currency,
         paymentMethod: payment.paymentMethod,
-        idempotencyKey: payment.idempotencyKey
+        idempotencyKey: payment.idempotencyKey,
       },
-      result.gatewayResponse
+      result.gatewayResponse,
     );
 
     this.logger.log(`Added failed payment ${payment.id} to retry queue`);
@@ -364,7 +489,7 @@ export class PaymentsService {
   private async ensureValidOrderState(orderId: string): Promise<void> {
     // Get order
     const order = await this.ordersService.getOrderById(orderId);
-    
+
     if (!order) {
       throw new Error(`Order ${orderId} not found`);
     }
@@ -372,7 +497,7 @@ export class PaymentsService {
     // Check if order is in a valid state for payment
     // This would depend on your order status flow
     // For now, we'll just check if it exists
-    
+
     this.logger.log(`Order ${orderId} validated for payment processing`);
   }
 }

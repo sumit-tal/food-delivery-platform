@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
-import { PaymentGatewayService } from './services/payment-gateway.service';
 import { MockPaymentGateway } from './gateways/mock-payment.gateway';
 import { CircuitBreakerService } from './services/circuit-breaker.service';
 import { PaymentRetryService } from './services/payment-retry.service';
@@ -14,12 +13,9 @@ import { OrdersModule } from '../orders/orders.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      PaymentEntity,
-      PaymentFailureQueueEntity
-    ]),
+    TypeOrmModule.forFeature([PaymentEntity, PaymentFailureQueueEntity]),
     ConfigModule,
-    OrdersModule
+    OrdersModule,
   ],
   controllers: [PaymentsController],
   providers: [
@@ -29,14 +25,9 @@ import { OrdersModule } from '../orders/orders.module';
     PaymentCacheService,
     {
       provide: 'PaymentGateway',
-      useClass: MockPaymentGateway
-    }
+      useClass: MockPaymentGateway,
+    },
   ],
-  exports: [
-    PaymentsService,
-    CircuitBreakerService,
-    PaymentRetryService,
-    'PaymentGateway'
-  ]
+  exports: [PaymentsService, CircuitBreakerService, PaymentRetryService, 'PaymentGateway'],
 })
 export class PaymentsModule {}

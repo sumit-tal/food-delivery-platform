@@ -1,13 +1,13 @@
-import { 
-  Controller, 
-  Post, 
-  Body, 
-  Get, 
-  Param, 
-  UseGuards, 
-  HttpException, 
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Param,
+  UseGuards,
+  HttpException,
   HttpStatus,
-  Logger
+  Logger,
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
@@ -45,21 +45,21 @@ export class PaymentsController {
         processPaymentDto.paymentMethod,
         processPaymentDto.customerId,
         processPaymentDto.customerEmail,
-        processPaymentDto.metadata
+        processPaymentDto.metadata,
       );
 
       // Add id property to the result for type compatibility
       const resultWithId = {
         ...result,
-        id: result.paymentId || 'unknown'
+        id: result.paymentId || 'unknown',
       };
-      
+
       return this.createPaymentResponse(resultWithId, processPaymentDto);
     } catch (error) {
-      this.handlePaymentError(error as Error, 'processing payment');
+      return this.handlePaymentError(error as Error, 'processing payment');
     }
   }
-  
+
   /**
    * Create payment response DTO from payment result
    * @param result Payment result
@@ -67,8 +67,8 @@ export class PaymentsController {
    * @returns Payment response DTO
    */
   private createPaymentResponse(
-    result: PaymentResult & { id: string }, 
-    paymentDto: ProcessPaymentDto
+    result: PaymentResult & { id: string },
+    paymentDto: ProcessPaymentDto,
   ): PaymentResponseDto {
     return {
       id: result.id,
@@ -79,7 +79,7 @@ export class PaymentsController {
       currency: paymentDto.currency,
       errorCode: result.errorCode,
       errorMessage: result.errorMessage,
-      timestamp: result.timestamp || new Date()
+      timestamp: result.timestamp || new Date(),
     };
   }
 
@@ -94,18 +94,22 @@ export class PaymentsController {
     try {
       const result = await this.paymentsService.refundPayment(
         refundPaymentDto.paymentId,
-        refundPaymentDto.amount
+        refundPaymentDto.amount,
       );
 
       // Get payment details
       const payment = await this.paymentsService.getPaymentById(refundPaymentDto.paymentId);
 
+      if (!payment) {
+        throw new HttpException('Payment not found', HttpStatus.NOT_FOUND);
+      }
+
       return this.createRefundResponse(result, payment, refundPaymentDto);
     } catch (error) {
-      this.handlePaymentError(error as Error, 'refunding payment');
+      return this.handlePaymentError(error as Error, 'refunding payment');
     }
   }
-  
+
   /**
    * Create refund response DTO
    * @param result Refund result
@@ -114,9 +118,9 @@ export class PaymentsController {
    * @returns Payment response DTO
    */
   private createRefundResponse(
-    result: PaymentResult, 
-    payment: PaymentEntity, 
-    refundDto: RefundPaymentDto
+    result: PaymentResult,
+    payment: PaymentEntity,
+    refundDto: RefundPaymentDto,
   ): PaymentResponseDto {
     return {
       id: refundDto.paymentId,
@@ -127,7 +131,7 @@ export class PaymentsController {
       currency: payment.currency,
       errorCode: result.errorCode,
       errorMessage: result.errorMessage,
-      timestamp: result.timestamp || new Date()
+      timestamp: result.timestamp || new Date(),
     };
   }
 
@@ -141,11 +145,11 @@ export class PaymentsController {
   async getPayment(@Param('id') id: string): Promise<PaymentEntity> {
     try {
       const payment = await this.paymentsService.getPaymentById(id);
-      
+
       if (!payment) {
         throw new HttpException('Payment not found', HttpStatus.NOT_FOUND);
       }
-      
+
       return payment;
     } catch (error) {
       if (error instanceof HttpException) {
@@ -166,10 +170,10 @@ export class PaymentsController {
     try {
       return this.paymentsService.getPaymentsByOrderId(orderId);
     } catch (error) {
-      this.handlePaymentError(error as Error, 'retrieving order payments');
+      return this.handlePaymentError(error as Error, 'retrieving order payments');
     }
   }
-  
+
   /**
    * Handle payment errors
    * @param error Error object
@@ -179,7 +183,7 @@ export class PaymentsController {
     this.logger.error(`Error ${operation}: ${error.message}`, error.stack);
     throw new HttpException(
       `Error ${operation}: ${error.message}`,
-      HttpStatus.INTERNAL_SERVER_ERROR
+      HttpStatus.INTERNAL_SERVER_ERROR,
     );
   }
 }
