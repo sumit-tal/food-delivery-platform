@@ -12,6 +12,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { TrackingModule } from './modules/tracking/tracking.module';
 import { SimulatorModule } from './modules/simulator/simulator.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 /**
  * AppModule is the root module of the SwiftEats backend application.
@@ -27,7 +28,8 @@ import { SimulatorModule } from './modules/simulator/simulator.module';
     OrdersModule,
     PaymentsModule,
     TrackingModule,
-    SimulatorModule
+    SimulatorModule,
+    NotificationsModule
   ],
   providers: [
     { provide: APP_GUARD, useClass: RolesGuard }

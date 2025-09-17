@@ -1,46 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { CircuitBreakerService as CommonCircuitBreakerService } from '../../../common/resilience/circuit-breaker.service';
+import { CircuitState, CircuitBreakerConfig } from '../../../common/resilience/circuit-breaker.interface';
 
 /**
- * Circuit state enum
- */
-export enum CircuitState {
-  CLOSED = 'closed',     // Normal operation, requests pass through
-  OPEN = 'open',         // Circuit is open, requests fail fast
-  HALF_OPEN = 'half_open' // Testing if service is back online
-}
-
-/**
- * Circuit breaker configuration
- */
-export interface CircuitBreakerConfig {
-  /** Number of failures before opening the circuit */
-  failureThreshold: number;
-  
-  /** Time window in ms to track failures */
-  failureWindowMs: number;
-  
-  /** Time in ms to wait before transitioning from OPEN to HALF_OPEN */
-  resetTimeoutMs: number;
-  
-  /** Number of successful requests needed in HALF_OPEN state to close the circuit */
-  successThreshold: number;
-}
-
-/**
- * Circuit breaker implementation for handling service failures
+ * Payment-specific circuit breaker service that wraps the common circuit breaker
+ * Provides payment-specific fallback mechanisms and configurations
  */
 @Injectable()
 export class CircuitBreakerService {
   private readonly logger = new Logger(CircuitBreakerService.name);
-  private circuits: Map<string, CircuitData> = new Map();
   
-  /** Default circuit breaker configuration */
-  private readonly defaultConfig: CircuitBreakerConfig = {
-    failureThreshold: 5,
-    failureWindowMs: 60000, // 1 minute
-    resetTimeoutMs: 30000,  // 30 seconds
-    successThreshold: 2
+  /** Default payment circuit breaker configuration */
+  private readonly defaultPaymentConfig: Partial<CircuitBreakerConfig> = {
+    failureThreshold: 3,        // More sensitive for payments
+    failureWindowMs: 30000,     // 30 seconds
+    resetTimeoutMs: 60000,      // 1 minute
+    successThreshold: 2,
+    fallback: this.paymentFallback.bind(this)
   };
+
+  constructor(private readonly commonCircuitBreaker: CommonCircuitBreakerService) {}
 
   /**
    * Execute a function with circuit breaker protection
@@ -55,163 +34,46 @@ export class CircuitBreakerService {
     operation: () => Promise<T>,
     config?: Partial<CircuitBreakerConfig>
   ): Promise<T> {
-    // Get or create circuit data
-    const circuit = this.getOrCreateCircuit(circuitId, config);
+    // Prefix circuit ID with 'payment-' to namespace it
+    const paymentCircuitId = `payment-${circuitId}`;
     
-    // Check if circuit is open
-    if (circuit.state === CircuitState.OPEN) {
-      // Check if reset timeout has elapsed
-      if (Date.now() - circuit.lastStateChange >= circuit.config.resetTimeoutMs) {
-        this.transitionToHalfOpen(circuit);
-      } else {
-        this.logger.warn(`Circuit ${circuitId} is OPEN. Fast failing request.`);
-        throw new Error(`Service unavailable: circuit ${circuitId} is open`);
-      }
-    }
+    // Merge payment-specific defaults with provided config
+    const mergedConfig = { ...this.defaultPaymentConfig, ...config };
     
-    try {
-      // Execute the operation
-      const result = await operation();
-      
-      // Handle success
-      this.handleSuccess(circuit);
-      
-      return result;
-    } catch (error) {
-      // Handle failure
-      this.handleFailure(circuit, error as Error);
-      throw error;
-    }
+    return this.commonCircuitBreaker.executeWithCircuitBreaker(
+      paymentCircuitId,
+      operation,
+      mergedConfig
+    );
   }
 
   /**
-   * Get the current state of a circuit
+   * Get the current state of a payment circuit
    * @param circuitId Unique identifier for the circuit
    * @returns Current circuit state
    */
   getCircuitState(circuitId: string): CircuitState {
-    return this.circuits.get(circuitId)?.state || CircuitState.CLOSED;
+    return this.commonCircuitBreaker.getCircuitState(`payment-${circuitId}`);
   }
 
   /**
-   * Reset a circuit to closed state
+   * Reset a payment circuit to closed state
    * @param circuitId Unique identifier for the circuit
    */
   resetCircuit(circuitId: string): void {
-    const circuit = this.circuits.get(circuitId);
-    if (circuit) {
-      circuit.state = CircuitState.CLOSED;
-      circuit.failures = [];
-      circuit.successCount = 0;
-      circuit.lastStateChange = Date.now();
-      this.logger.log(`Circuit ${circuitId} manually reset to CLOSED state`);
-    }
+    this.commonCircuitBreaker.resetCircuit(`payment-${circuitId}`);
   }
-
-  /**
-   * Get or create circuit data
-   * @param circuitId Unique identifier for the circuit
-   * @param config Optional circuit breaker configuration
-   * @returns Circuit data
-   */
-  private getOrCreateCircuit(
-    circuitId: string,
-    config?: Partial<CircuitBreakerConfig>
-  ): CircuitData {
-    if (!this.circuits.has(circuitId)) {
-      this.circuits.set(circuitId, {
-        state: CircuitState.CLOSED,
-        failures: [],
-        successCount: 0,
-        lastStateChange: Date.now(),
-        config: { ...this.defaultConfig, ...config }
-      });
-    }
-    
-    return this.circuits.get(circuitId)!;
-  }
-
-  /**
-   * Handle successful operation
-   * @param circuit Circuit data
-   */
-  private handleSuccess(circuit: CircuitData): void {
-    if (circuit.state === CircuitState.HALF_OPEN) {
-      circuit.successCount++;
-      
-      if (circuit.successCount >= circuit.config.successThreshold) {
-        circuit.state = CircuitState.CLOSED;
-        circuit.failures = [];
-        circuit.successCount = 0;
-        circuit.lastStateChange = Date.now();
-        this.logger.log(`Circuit transitioned from HALF_OPEN to CLOSED after ${circuit.config.successThreshold} successful requests`);
-      }
-    }
-    
-    // In CLOSED state, we just continue normal operation
-  }
-
-  /**
-   * Handle operation failure
-   * @param circuit Circuit data
-   * @param error Error that occurred
-   */
-  private handleFailure(circuit: CircuitData, error: Error): void {
-    const now = Date.now();
-    
-    if (circuit.state === CircuitState.HALF_OPEN) {
-      // Any failure in HALF_OPEN state opens the circuit again
-      circuit.state = CircuitState.OPEN;
-      circuit.lastStateChange = now;
-      circuit.successCount = 0;
-      this.logger.warn(`Circuit transitioned from HALF_OPEN to OPEN due to failure: ${error.message}`);
-      return;
-    }
-    
-    // Add failure to the list
-    circuit.failures.push(now);
-    
-    // Remove failures outside the window
-    const windowStart = now - circuit.config.failureWindowMs;
-    circuit.failures = circuit.failures.filter(time => time >= windowStart);
-    
-    // Check if failure threshold is reached
-    if (circuit.state === CircuitState.CLOSED && 
-        circuit.failures.length >= circuit.config.failureThreshold) {
-      circuit.state = CircuitState.OPEN;
-      circuit.lastStateChange = now;
-      this.logger.warn(`Circuit transitioned from CLOSED to OPEN after ${circuit.failures.length} failures in ${circuit.config.failureWindowMs}ms`);
-    }
-  }
-
-  /**
-   * Transition circuit to half-open state
-   * @param circuit Circuit data
-   */
-  private transitionToHalfOpen(circuit: CircuitData): void {
-    circuit.state = CircuitState.HALF_OPEN;
-    circuit.lastStateChange = Date.now();
-    circuit.successCount = 0;
-    this.logger.log(`Circuit transitioned from OPEN to HALF_OPEN`);
-  }
-}
-
-/**
- * Internal circuit data interface
- */
-interface CircuitData {
-  /** Current state of the circuit */
-  state: CircuitState;
   
-  /** Timestamps of recent failures */
-  failures: number[];
-  
-  /** Count of consecutive successes in HALF_OPEN state */
-  successCount: number;
-  
-  /** Timestamp of last state change */
-  lastStateChange: number;
-  
-  /** Circuit breaker configuration */
-  config: CircuitBreakerConfig;
+  /**
+   * Payment-specific fallback function
+   * @param error The error that triggered the fallback
+   * @returns A fallback result or throws an error
+   */
+  private paymentFallback<T>(error: Error): T {
+    this.logger.warn(`Payment circuit breaker fallback triggered: ${error.message}`);
+    
+    // For payments, we generally want to fail safely rather than provide a fallback result
+    // This could be customized based on the specific payment operation
+    throw new Error(`Payment service unavailable: ${error.message}`);
+  }
 }

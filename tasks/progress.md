@@ -19,9 +19,9 @@ This file tracks the status of all tasks under the `tasks/` directory. Update th
 | 006 | [Real-Time Driver Tracking](./006-real-time-driver-tracking.md)                   | Phase 2 | Done        |       | 2025-09-13  |
 | 007 | [Driver Simulator](./007-driver-simulator.md)                                     | Phase 2 | Done        |       | 2025-09-13  |
 | 008 | [Geofencing & Proximity Search](./008-geofencing-proximity-search.md)             | Phase 2 | Done        |       | 2025-09-15  |
-| 009 | [Real-Time Notifications](./009-real-time-notifications.md)                       | Phase 2 | Not Started |       |             |
-| 010 | [Circuit Breaker Implementation](./010-circuit-breaker-implementation.md)         | Phase 3 | Not Started |       |             |
-| 011 | [Enhanced Caching Layer](./011-enhanced-caching-layer.md)                         | Phase 3 | Not Started |       |             |
+| 009 | [Real-Time Notifications](./009-real-time-notifications.md)                       | Phase 2 | Done        |       | 2025-09-16  |
+| 010 | [Circuit Breaker Implementation](./010-circuit-breaker-implementation.md)         | Phase 3 | Done        |       | 2025-09-17  |
+| 011 | [Enhanced Caching Layer](./011-enhanced-caching-layer.md)                         | Phase 3 | Done        |       | 2025-09-17  |
 | 012 | [Performance Optimization](./012-performance-optimization.md)                     | Phase 3 | Not Started |       |             |
 | 013 | [Load Testing & Scaling Verification](./013-load-testing-scaling-verification.md) | Phase 3 | Not Started |       |             |
 | 014 | [Observability & Monitoring](./014-observability-monitoring.md)                   | Phase 3 | Not Started |       |             |
@@ -43,12 +43,12 @@ This file tracks the status of all tasks under the `tasks/` directory. Update th
 - [x] 006: [Real-Time Driver Tracking](./006-real-time-driver-tracking.md)
 - [x] 007: [Driver Simulator](./007-driver-simulator.md)
 - [x] 008: [Geofencing & Proximity Search](./008-geofencing-proximity-search.md)
-- [ ] 009: [Real-Time Notifications](./009-real-time-notifications.md)
+- [x] 009: [Real-Time Notifications](./009-real-time-notifications.md)
 
 ### Phase 3 – Performance & Resilience
 
-- [ ] 010: [Circuit Breaker Implementation](./010-circuit-breaker-implementation.md)
-- [ ] 011: [Enhanced Caching Layer](./011-enhanced-caching-layer.md)
+- [x] 010: [Circuit Breaker Implementation](./010-circuit-breaker-implementation.md)
+- [x] 011: [Enhanced Caching Layer](./011-enhanced-caching-layer.md)
 - [ ] 012: [Performance Optimization](./012-performance-optimization.md)
 - [ ] 013: [Load Testing & Scaling Verification](./013-load-testing-scaling-verification.md)
 - [ ] 014: [Observability & Monitoring](./014-observability-monitoring.md)
