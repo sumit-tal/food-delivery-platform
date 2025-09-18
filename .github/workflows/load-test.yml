@@ -1,0 +1,176 @@
+name: Load Testing
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM UTC
+  workflow_dispatch:
+    inputs:
+      test_duration:
+        description: 'Test duration in minutes'
+        required: false
+        default: '10'
+      target_url:
+        description: 'Target URL for testing'
+        required: false
+        default: 'http://localhost:3000'
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: swifteats_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Install Artillery
+        run: npm install -g artillery@latest
+
+      - name: Setup test environment
+        run: |
+          cp .env.example .env.test
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/swifteats_test" >> .env.test
+          echo "REDIS_URL=redis://localhost:6379" >> .env.test
+          echo "NODE_ENV=test" >> .env.test
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start application
+        run: |
+          npm start &
+          echo $! > app.pid
+          sleep 30  # Wait for application to start
+        env:
+          NODE_ENV: test
+
+      - name: Wait for application health
+        run: |
+          timeout 60 bash -c 'until curl -f http://localhost:3000/health; do sleep 2; done'
+
+      - name: Run Order Processing Load Test
+        run: |
+          echo "Running Order Processing Load Test (500 orders/minute target)"
+          k6 run --duration ${{ github.event.inputs.test_duration || '5' }}m test/load/order-processing-load.js
+        env:
+          BASE_URL: ${{ github.event.inputs.target_url || 'http://localhost:3000' }}
+        continue-on-error: true
+
+      - name: Run Location Updates Load Test
+        run: |
+          echo "Running Location Updates Load Test (2,000 updates/second target)"
+          k6 run --duration ${{ github.event.inputs.test_duration || '3' }}m test/load/location-updates-load.js
+        env:
+          BASE_URL: ${{ github.event.inputs.target_url || 'http://localhost:3000' }}
+          WS_URL: ws://localhost:3000
+        continue-on-error: true
+
+      - name: Run Failover Tests
+        run: |
+          echo "Running Failover Tests"
+          k6 run test/load/failover-tests.js
+        env:
+          BASE_URL: ${{ github.event.inputs.target_url || 'http://localhost:3000' }}
+        continue-on-error: true
+
+      - name: Run Scaling Verification
+        run: |
+          echo "Running Scaling Verification Tests"
+          k6 run test/load/scaling-verification.js
+        env:
+          BASE_URL: ${{ github.event.inputs.target_url || 'http://localhost:3000' }}
+        continue-on-error: true
+
+      - name: Run Performance Monitoring
+        run: |
+          echo "Running Performance Monitoring"
+          k6 run --duration ${{ github.event.inputs.test_duration || '5' }}m test/load/performance-monitor.js
+        env:
+          BASE_URL: ${{ github.event.inputs.target_url || 'http://localhost:3000' }}
+        continue-on-error: true
+
+      - name: Run Artillery Load Test
+        run: |
+          echo "Running Artillery Load Test"
+          artillery run test/load/artillery-config.yml
+        env:
+          BASE_URL: ${{ github.event.inputs.target_url || 'http://localhost:3000' }}
+        continue-on-error: true
+
+      - name: Stop application
+        if: always()
+        run: |
+          if [ -f app.pid ]; then
+            kill $(cat app.pid) || true
+          fi
+
+      - name: Upload Load Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-results-${{ github.run_number }}
+          path: |
+            *.json
+            *.html
+            *.xml
+            test/load/*.log
+          retention-days: 30
+
+      - name: Generate Load Test Summary
+        if: always()
+        run: |
+          echo "# Load Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- Duration: ${{ github.event.inputs.test_duration || '5' }} minutes" >> $GITHUB_STEP_SUMMARY
+          echo "- Target URL: ${{ github.event.inputs.target_url || 'http://localhost:3000' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Timestamp: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Performance Targets" >> $GITHUB_STEP_SUMMARY
+          echo "- Order Processing: 500 orders/minute" >> $GITHUB_STEP_SUMMARY
+          echo "- Location Updates: 2,000 updates/second" >> $GITHUB_STEP_SUMMARY
+          echo "- Response Time P95: < 500ms (general), < 2s (orders)" >> $GITHUB_STEP_SUMMARY
+          echo "- Error Rate: < 2%" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check the uploaded artifacts for detailed test results." >> $GITHUB_STEP_SUMMARY

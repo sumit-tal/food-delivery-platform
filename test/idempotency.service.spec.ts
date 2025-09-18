@@ -39,7 +39,7 @@ describe('When using IdempotencyService', () => {
 
     service = module.get<IdempotencyService>(IdempotencyService);
     transactionRepository = module.get<Repository<OrderTransactionEntity>>(
-      getRepositoryToken(OrderTransactionEntity)
+      getRepositoryToken(OrderTransactionEntity),
     );
     transactionService = module.get<TransactionService>(TransactionService);
   });
@@ -139,7 +139,7 @@ describe('When using IdempotencyService', () => {
           status: 'completed',
           orderId,
           responsePayload,
-        })
+        }),
       );
     });
   });
@@ -177,7 +177,7 @@ describe('When using IdempotencyService', () => {
         expect.objectContaining({
           status: 'completed',
           orderId,
-        })
+        }),
       );
     });
 
@@ -212,7 +212,7 @@ describe('When using IdempotencyService', () => {
       expect(mockTransactionRepository.increment).toHaveBeenCalledWith(
         { id: transactionId },
         'attempts',
-        1
+        1,
       );
       expect(operation).toHaveBeenCalled();
     });
@@ -235,7 +235,7 @@ describe('When using IdempotencyService', () => {
 
       // Act & Assert
       await expect(
-        service.executeWithIdempotency(transactionId, requestPayload, failingOperation)
+        service.executeWithIdempotency(transactionId, requestPayload, failingOperation),
       ).rejects.toThrow('Operation failed');
       expect(mockTransactionRepository.update).toHaveBeenCalledWith(
         { id: transactionId },
@@ -244,7 +244,7 @@ describe('When using IdempotencyService', () => {
           responsePayload: expect.objectContaining({
             error: 'Operation failed',
           }),
-        })
+        }),
       );
     });
   });

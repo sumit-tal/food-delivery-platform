@@ -1,0 +1,204 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    # Warm-up phase
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm-up"
+    # Load testing phase
+    - duration: 300
+      arrivalRate: 20
+      name: "Load test"
+    # Stress testing phase
+    - duration: 180
+      arrivalRate: 50
+      name: "Stress test"
+    # Peak load phase
+    - duration: 120
+      arrivalRate: 100
+      name: "Peak load"
+    # Cool down
+    - duration: 60
+      arrivalRate: 5
+      name: "Cool down"
+  
+  # Payload configuration
+  payload:
+    path: "./test-data.csv"
+    fields:
+      - "email"
+      - "password"
+      - "restaurantId"
+  
+  # Default headers
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+  
+  # Performance thresholds
+  ensure:
+    p95: 500  # 95th percentile response time should be under 500ms
+    p99: 1000 # 99th percentile response time should be under 1000ms
+    maxErrorRate: 5 # Error rate should be under 5%
+
+  # Plugins for enhanced reporting
+  plugins:
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+    publish-metrics:
+      - type: datadog
+        apiKey: "{{ $processEnvironment.DATADOG_API_KEY }}"
+        prefix: "swifteats.loadtest"
+      - type: prometheus
+        pushgateway: "http://localhost:9091"
+
+# Test scenarios
+scenarios:
+  - name: "User Authentication Flow"
+    weight: 20
+    flow:
+      - post:
+          url: "/auth/login"
+          json:
+            email: "{{ email }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.access_token"
+              as: "authToken"
+          expect:
+            - statusCode: 200
+            - hasProperty: "access_token"
+
+  - name: "Browse Restaurants"
+    weight: 30
+    flow:
+      - post:
+          url: "/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+          capture:
+            - json: "$.access_token"
+              as: "authToken"
+      - get:
+          url: "/restaurants"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          qs:
+            page: 1
+            limit: 20
+          expect:
+            - statusCode: 200
+            - contentType: json
+      - think: 2
+
+  - name: "View Restaurant Menu"
+    weight: 25
+    flow:
+      - post:
+          url: "/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+          capture:
+            - json: "$.access_token"
+              as: "authToken"
+      - get:
+          url: "/restaurants/{{ restaurantId }}/menu"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - think: 3
+
+  - name: "Place Order Flow"
+    weight: 15
+    flow:
+      - post:
+          url: "/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+          capture:
+            - json: "$.access_token"
+              as: "authToken"
+      - post:
+          url: "/orders"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            restaurantId: "{{ restaurantId }}"
+            items:
+              - menuItemId: "item-1"
+                quantity: 2
+                price: 12.99
+            deliveryAddress:
+              street: "123 Test St"
+              city: "Test City"
+              zipCode: "12345"
+              coordinates:
+                lat: 40.7128
+                lng: -74.0060
+            paymentMethodId: "pm_test_123"
+          capture:
+            - json: "$.id"
+              as: "orderId"
+          expect:
+            - statusCode: 201
+            - hasProperty: "id"
+      - get:
+          url: "/orders/{{ orderId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  - name: "Real-time Tracking"
+    weight: 10
+    flow:
+      - post:
+          url: "/auth/login"
+          json:
+            email: "driver@example.com"
+            password: "password123"
+          capture:
+            - json: "$.access_token"
+              as: "driverToken"
+      - post:
+          url: "/tracking/location"
+          headers:
+            Authorization: "Bearer {{ driverToken }}"
+          json:
+            driverId: "driver-{{ $randomString() }}"
+            location:
+              lat: "{{ $randomNumber(40.4774, 40.9176) }}"
+              lng: "{{ $randomNumber(-74.2591, -73.7004) }}"
+            timestamp: "{{ $isoTimestamp() }}"
+            speed: "{{ $randomNumber(10, 60) }}"
+            heading: "{{ $randomNumber(0, 359) }}"
+          expect:
+            - statusCode: 200
+
+# Custom functions for data generation
+functions:
+  generateOrderData:
+    - set:
+        restaurantId: "restaurant-{{ $randomNumber(1, 5) }}"
+        itemCount: "{{ $randomNumber(1, 4) }}"
+  
+  generateLocationData:
+    - set:
+        lat: "{{ $randomNumber(40.4774, 40.9176) }}"
+        lng: "{{ $randomNumber(-74.2591, -73.7004) }}"
+        speed: "{{ $randomNumber(10, 60) }}"
+
+# Before/After hooks
+before:
+  flow:
+    - log: "Starting SwiftEats Load Test"
+    - log: "Target: {{ target }}"
+
+after:
+  flow:
+    - log: "Load test completed"
+    - log: "Check Artillery report for detailed metrics"

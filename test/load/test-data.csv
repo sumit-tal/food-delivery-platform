@@ -1,0 +1,16 @@
+email,password,restaurantId
+loadtest1@example.com,password123,restaurant-1
+loadtest2@example.com,password123,restaurant-2
+loadtest3@example.com,password123,restaurant-3
+loadtest4@example.com,password123,restaurant-4
+loadtest5@example.com,password123,restaurant-5
+loadtest6@example.com,password123,restaurant-1
+loadtest7@example.com,password123,restaurant-2
+loadtest8@example.com,password123,restaurant-3
+loadtest9@example.com,password123,restaurant-4
+loadtest10@example.com,password123,restaurant-5
+driver1@example.com,password123,restaurant-1
+driver2@example.com,password123,restaurant-2
+driver3@example.com,password123,restaurant-3
+driver4@example.com,password123,restaurant-4
+driver5@example.com,password123,restaurant-5

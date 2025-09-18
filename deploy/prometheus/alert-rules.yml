@@ -1,0 +1,117 @@
+groups:
+  - name: swifteats-alerts
+    rules:
+      # System alerts
+      - alert: HighCpuUsage
+        expr: swifteats_system_cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: swifteats-backend
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is above 80% for more than 5 minutes."
+
+      - alert: HighMemoryUsage
+        expr: swifteats_system_memory_usage_bytes / 1024 / 1024 / 1024 > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: swifteats-backend
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 2GB for more than 5 minutes."
+
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: swifteats-backend
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+
+      # API alerts
+      - alert: HighHttpErrorRate
+        expr: sum(rate(swifteats_http_requests_total{status=~"5.."}[5m])) / sum(rate(swifteats_http_requests_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: swifteats-backend
+        annotations:
+          summary: "High HTTP error rate"
+          description: "HTTP error rate is above 5% for more than 2 minutes."
+
+      - alert: SlowHttpRequests
+        expr: histogram_quantile(0.95, sum by(le, path) (rate(swifteats_http_request_duration_seconds_bucket[5m]))) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: swifteats-backend
+        annotations:
+          summary: "Slow HTTP requests"
+          description: "95th percentile of HTTP request duration for {{ $labels.path }} is above 1 second for more than 5 minutes."
+
+      - alert: HighRequestRate
+        expr: sum(rate(swifteats_http_requests_total[1m])) > 1000
+        for: 2m
+        labels:
+          severity: warning
+          service: swifteats-backend
+        annotations:
+          summary: "High request rate"
+          description: "Request rate is above 1000 requests per second for more than 2 minutes."
+
+      # Database alerts
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, sum by(le, operation, entity) (rate(swifteats_db_query_duration_seconds_bucket[5m]))) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          service: swifteats-backend
+        annotations:
+          summary: "Slow database queries"
+          description: "95th percentile of database query duration for {{ $labels.operation }} on {{ $labels.entity }} is above 0.5 seconds for more than 5 minutes."
+
+      # Business alerts
+      - alert: HighOrderProcessingTime
+        expr: histogram_quantile(0.95, sum by(le) (rate(swifteats_order_processing_time_seconds_bucket[5m]))) > 1800
+        for: 5m
+        labels:
+          severity: warning
+          service: swifteats-backend
+        annotations:
+          summary: "High order processing time"
+          description: "95th percentile of order processing time is above 30 minutes for more than 5 minutes."
+
+      - alert: HighDriverDeliveryTime
+        expr: histogram_quantile(0.95, sum by(le, region) (rate(swifteats_driver_delivery_time_seconds_bucket[5m]))) > 1800
+        for: 5m
+        labels:
+          severity: warning
+          service: swifteats-backend
+        annotations:
+          summary: "High driver delivery time"
+          description: "95th percentile of driver delivery time in region {{ $labels.region }} is above 30 minutes for more than 5 minutes."
+
+      - alert: LowActiveDrivers
+        expr: sum by(region) (swifteats_drivers_active) < 5
+        for: 5m
+        labels:
+          severity: warning
+          service: swifteats-backend
+        annotations:
+          summary: "Low active drivers"
+          description: "Number of active drivers in region {{ $labels.region }} is below 5 for more than 5 minutes."
+
+      # Cache alerts
+      - alert: HighCacheMissRate
+        expr: sum(rate(swifteats_cache_miss_total[5m])) / (sum(rate(swifteats_cache_hit_total[5m])) + sum(rate(swifteats_cache_miss_total[5m]))) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          service: swifteats-backend
+        annotations:
+          summary: "High cache miss rate"
+          description: "Cache miss rate is above 50% for more than 5 minutes."

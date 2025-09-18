@@ -23,8 +23,8 @@ This file tracks the status of all tasks under the `tasks/` directory. Update th
 | 010 | [Circuit Breaker Implementation](./010-circuit-breaker-implementation.md)         | Phase 3 | Done        |       | 2025-09-17  |
 | 011 | [Enhanced Caching Layer](./011-enhanced-caching-layer.md)                         | Phase 3 | Done        |       | 2025-09-17  |
 | 012 | [Performance Optimization](./012-performance-optimization.md)                     | Phase 3 | Done        |       | 2025-09-17  |
-| 013 | [Load Testing & Scaling Verification](./013-load-testing-scaling-verification.md) | Phase 3 | Not Started |       |             |
-| 014 | [Observability & Monitoring](./014-observability-monitoring.md)                   | Phase 3 | Not Started |       |             |
+| 013 | [Load Testing & Scaling Verification](./013-load-testing-scaling-verification.md) | Phase 3 | Done        |       | 2025-09-18  |
+| 014 | [Observability & Monitoring](./014-observability-monitoring.md)                   | Phase 3 | Done        |       | 2025-09-18  |
 | 015 | [Disaster Recovery & Backup](./015-disaster-recovery-backup.md)                   | Phase 3 | Not Started |       |             |
 | 016 | [Security Implementation](./016-security-implementation.md)                       | Phase 3 | Not Started |       |             |
 
@@ -50,8 +50,8 @@ This file tracks the status of all tasks under the `tasks/` directory. Update th
 - [x] 010: [Circuit Breaker Implementation](./010-circuit-breaker-implementation.md)
 - [x] 011: [Enhanced Caching Layer](./011-enhanced-caching-layer.md)
 - [x] 012: [Performance Optimization](./012-performance-optimization.md)
-- [ ] 013: [Load Testing & Scaling Verification](./013-load-testing-scaling-verification.md)
-- [ ] 014: [Observability & Monitoring](./014-observability-monitoring.md)
+- [x] 013: [Load Testing & Scaling Verification](./013-load-testing-scaling-verification.md)
+- [x] 014: [Observability & Monitoring](./014-observability-monitoring.md)
 - [ ] 015: [Disaster Recovery & Backup](./015-disaster-recovery-backup.md)
 - [ ] 016: [Security Implementation](./016-security-implementation.md)
 
