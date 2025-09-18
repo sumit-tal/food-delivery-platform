@@ -2,16 +2,19 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
-import compression from 'compression';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { APP_CONSTANTS } from './common/constants/app.constants';
+import { EnhancedCompressionMiddleware } from './common/middleware/enhanced-compression.middleware';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.use(helmet());
-  app.use(compression());
+  
+  // Use enhanced compression middleware instead of the basic one
+  const compressionMiddleware = app.get(EnhancedCompressionMiddleware);
+  app.use(compressionMiddleware.use.bind(compressionMiddleware));
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

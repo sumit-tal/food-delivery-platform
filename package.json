@@ -14,7 +14,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "optimize-indexes": "ts-node scripts/optimize-indexes.ts"
   },
   "dependencies": {
     "@nestjs/bull": "^11.0.3",

@@ -13,6 +13,8 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { TrackingModule } from './modules/tracking/tracking.module';
 import { SimulatorModule } from './modules/simulator/simulator.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PerformanceModule } from './modules/performance/performance.module';
+import { DatabaseModule } from './modules/database/database.module';
 
 /**
  * AppModule is the root module of the SwiftEats backend application.
@@ -20,6 +22,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate }),
+    DatabaseModule,
     HealthModule,
     UsersModule,
     AuthModule,
@@ -29,7 +32,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     PaymentsModule,
     TrackingModule,
     SimulatorModule,
-    NotificationsModule
+    NotificationsModule,
+    PerformanceModule
   ],
   providers: [
     { provide: APP_GUARD, useClass: RolesGuard }
