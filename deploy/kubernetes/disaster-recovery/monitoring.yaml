@@ -1,0 +1,429 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-monitoring
+  namespace: swifteats
+  labels:
+    app: postgres
+    monitoring: enabled
+spec:
+  selector:
+    matchLabels:
+      app: postgres-primary
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-replica-monitoring
+  namespace: swifteats
+  labels:
+    app: postgres-replica
+    monitoring: enabled
+spec:
+  selector:
+    matchLabels:
+      app: postgres-replica
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: postgres-disaster-recovery-alerts
+  namespace: swifteats
+  labels:
+    app: postgres
+    role: alert-rules
+spec:
+  groups:
+  - name: postgres.disaster-recovery
+    rules:
+    - alert: PostgresPrimaryDown
+      expr: up{job="postgres-primary"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: postgres
+        component: primary
+      annotations:
+        summary: "PostgreSQL primary database is down"
+        description: "PostgreSQL primary database has been down for more than 1 minute"
+        runbook_url: "https://runbooks.swifteats.com/postgres/primary-down"
+
+    - alert: PostgresReplicaDown
+      expr: up{job="postgres-replica"} == 0
+      for: 5m
+      labels:
+        severity: warning
+        service: postgres
+        component: replica
+      annotations:
+        summary: "PostgreSQL replica database is down"
+        description: "PostgreSQL replica database {{ $labels.instance }} has been down for more than 5 minutes"
+        runbook_url: "https://runbooks.swifteats.com/postgres/replica-down"
+
+    - alert: PostgresReplicationLagHigh
+      expr: pg_stat_replication_lag_seconds > 300
+      for: 2m
+      labels:
+        severity: warning
+        service: postgres
+        component: replication
+      annotations:
+        summary: "PostgreSQL replication lag is high"
+        description: "PostgreSQL replication lag is {{ $value }} seconds on {{ $labels.instance }}"
+        runbook_url: "https://runbooks.swifteats.com/postgres/replication-lag"
+
+    - alert: PostgresReplicationLagCritical
+      expr: pg_stat_replication_lag_seconds > 900
+      for: 1m
+      labels:
+        severity: critical
+        service: postgres
+        component: replication
+      annotations:
+        summary: "PostgreSQL replication lag is critically high"
+        description: "PostgreSQL replication lag is {{ $value }} seconds on {{ $labels.instance }}"
+        runbook_url: "https://runbooks.swifteats.com/postgres/replication-lag-critical"
+
+    - alert: PostgresReplicationStopped
+      expr: pg_stat_replication_active == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: postgres
+        component: replication
+      annotations:
+        summary: "PostgreSQL replication has stopped"
+        description: "PostgreSQL replication is not active on {{ $labels.instance }}"
+        runbook_url: "https://runbooks.swifteats.com/postgres/replication-stopped"
+
+    - alert: PostgresBackupFailed
+      expr: increase(backup_job_failures_total[1h]) > 0
+      for: 0m
+      labels:
+        severity: critical
+        service: postgres
+        component: backup
+      annotations:
+        summary: "PostgreSQL backup job failed"
+        description: "PostgreSQL backup job has failed {{ $value }} times in the last hour"
+        runbook_url: "https://runbooks.swifteats.com/postgres/backup-failed"
+
+    - alert: PostgresBackupMissing
+      expr: time() - backup_last_success_timestamp > 86400
+      for: 0m
+      labels:
+        severity: critical
+        service: postgres
+        component: backup
+      annotations:
+        summary: "PostgreSQL backup is missing"
+        description: "No successful PostgreSQL backup in the last 24 hours"
+        runbook_url: "https://runbooks.swifteats.com/postgres/backup-missing"
+
+    - alert: PostgresConnectionsHigh
+      expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        service: postgres
+        component: connections
+      annotations:
+        summary: "PostgreSQL connection usage is high"
+        description: "PostgreSQL is using {{ $value | humanizePercentage }} of available connections"
+        runbook_url: "https://runbooks.swifteats.com/postgres/connections-high"
+
+    - alert: PostgresDiskSpaceLow
+      expr: (node_filesystem_avail_bytes{mountpoint="/var/lib/postgresql/data"} / node_filesystem_size_bytes{mountpoint="/var/lib/postgresql/data"}) < 0.1
+      for: 5m
+      labels:
+        severity: critical
+        service: postgres
+        component: storage
+      annotations:
+        summary: "PostgreSQL disk space is low"
+        description: "PostgreSQL data directory has less than 10% free space remaining"
+        runbook_url: "https://runbooks.swifteats.com/postgres/disk-space-low"
+
+    - alert: PostgresWALArchivingFailed
+      expr: pg_stat_archiver_failed_count > pg_stat_archiver_archived_count
+      for: 10m
+      labels:
+        severity: warning
+        service: postgres
+        component: wal-archiving
+      annotations:
+        summary: "PostgreSQL WAL archiving is failing"
+        description: "PostgreSQL WAL archiving has more failures than successes"
+        runbook_url: "https://runbooks.swifteats.com/postgres/wal-archiving-failed"
+
+  - name: postgres.performance
+    rules:
+    - alert: PostgresSlowQueries
+      expr: rate(pg_stat_database_tup_returned[5m]) / rate(pg_stat_database_tup_fetched[5m]) < 0.1
+      for: 10m
+      labels:
+        severity: warning
+        service: postgres
+        component: performance
+      annotations:
+        summary: "PostgreSQL has many slow queries"
+        description: "PostgreSQL query efficiency is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+        runbook_url: "https://runbooks.swifteats.com/postgres/slow-queries"
+
+    - alert: PostgresDeadlocks
+      expr: increase(pg_stat_database_deadlocks[1h]) > 5
+      for: 0m
+      labels:
+        severity: warning
+        service: postgres
+        component: performance
+      annotations:
+        summary: "PostgreSQL deadlocks detected"
+        description: "PostgreSQL has {{ $value }} deadlocks in the last hour on {{ $labels.instance }}"
+        runbook_url: "https://runbooks.swifteats.com/postgres/deadlocks"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: disaster-recovery-dashboard
+  namespace: swifteats
+data:
+  dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "PostgreSQL Disaster Recovery",
+        "tags": ["postgres", "disaster-recovery"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Database Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=\"postgres-primary\"}",
+                "legendFormat": "Primary"
+              },
+              {
+                "expr": "up{job=\"postgres-replica\"}",
+                "legendFormat": "Replica"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Replication Lag",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "pg_stat_replication_lag_seconds",
+                "legendFormat": "Lag (seconds)"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Seconds",
+                "min": 0
+              }
+            ],
+            "alert": {
+              "conditions": [
+                {
+                  "query": {"params": ["A", "5m", "now"]},
+                  "reducer": {"params": [], "type": "last"},
+                  "evaluator": {"params": [300], "type": "gt"}
+                }
+              ],
+              "executionErrorState": "alerting",
+              "for": "2m",
+              "frequency": "10s",
+              "handler": 1,
+              "name": "Replication Lag Alert",
+              "noDataState": "no_data"
+            }
+          },
+          {
+            "id": 3,
+            "title": "Backup Status",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "backup_last_success_timestamp",
+                "legendFormat": "Last Backup"
+              },
+              {
+                "expr": "backup_job_failures_total",
+                "legendFormat": "Failed Backups"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Connection Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "pg_stat_database_numbackends",
+                "legendFormat": "Active Connections"
+              },
+              {
+                "expr": "pg_settings_max_connections",
+                "legendFormat": "Max Connections"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "WAL Generation Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(pg_stat_wal_bytes[5m])",
+                "legendFormat": "WAL Bytes/sec"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Disk Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "node_filesystem_avail_bytes{mountpoint=\"/var/lib/postgresql/data\"}",
+                "legendFormat": "Available Space"
+              },
+              {
+                "expr": "node_filesystem_size_bytes{mountpoint=\"/var/lib/postgresql/data\"}",
+                "legendFormat": "Total Space"
+              }
+            ]
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-disaster-recovery-config
+  namespace: swifteats
+data:
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: 'localhost:587'
+      smtp_from: 'alerts@swifteats.com'
+    
+    route:
+      group_by: ['alertname', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'web.hook'
+      routes:
+      - match:
+          severity: critical
+          service: postgres
+        receiver: 'postgres-critical'
+        group_wait: 0s
+        repeat_interval: 5m
+      - match:
+          severity: warning
+          service: postgres
+        receiver: 'postgres-warning'
+        repeat_interval: 30m
+    
+    receivers:
+    - name: 'web.hook'
+      webhook_configs:
+      - url: 'http://alertmanager-webhook:5000/alerts'
+    
+    - name: 'postgres-critical'
+      email_configs:
+      - to: 'dba-team@swifteats.com'
+        subject: 'CRITICAL: PostgreSQL Alert - {{ .GroupLabels.alertname }}'
+        body: |
+          Alert: {{ .GroupLabels.alertname }}
+          Severity: {{ .CommonLabels.severity }}
+          Service: {{ .CommonLabels.service }}
+          Component: {{ .CommonLabels.component }}
+          
+          Description: {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          
+          Runbook: {{ range .Alerts }}{{ .Annotations.runbook_url }}{{ end }}
+          
+          Time: {{ .CommonAnnotations.timestamp }}
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#alerts-critical'
+        title: 'CRITICAL PostgreSQL Alert'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .CommonLabels.severity }}
+          *Service:* {{ .CommonLabels.service }}
+          *Component:* {{ .CommonLabels.component }}
+          
+          *Description:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          
+          *Runbook:* {{ range .Alerts }}{{ .Annotations.runbook_url }}{{ end }}
+      pagerduty_configs:
+      - routing_key: 'YOUR_PAGERDUTY_INTEGRATION_KEY'
+        description: '{{ .GroupLabels.alertname }} - {{ .CommonLabels.service }}'
+    
+    - name: 'postgres-warning'
+      email_configs:
+      - to: 'dba-team@swifteats.com'
+        subject: 'WARNING: PostgreSQL Alert - {{ .GroupLabels.alertname }}'
+        body: |
+          Alert: {{ .GroupLabels.alertname }}
+          Severity: {{ .CommonLabels.severity }}
+          Service: {{ .CommonLabels.service }}
+          Component: {{ .CommonLabels.component }}
+          
+          Description: {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          
+          Runbook: {{ range .Alerts }}{{ .Annotations.runbook_url }}{{ end }}
+          
+          Time: {{ .CommonAnnotations.timestamp }}
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#alerts-warning'
+        title: 'WARNING PostgreSQL Alert'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .CommonLabels.severity }}
+          *Service:* {{ .CommonLabels.service }}
+          *Component:* {{ .CommonLabels.component }}
+          
+          *Description:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          
+          *Runbook:* {{ range .Alerts }}{{ .Annotations.runbook_url }}{{ end }}

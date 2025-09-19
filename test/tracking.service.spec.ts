@@ -189,7 +189,7 @@ describe('TrackingService', () => {
         heading: 45,
         speed: 20,
         timestamp: '2025-09-13T10:15:00Z',
-        source: 'memory',
+        source: 'memory' as const,
       };
 
       mockActiveDeliveryRepository.getActiveDeliveryByOrderId.mockResolvedValue(delivery);

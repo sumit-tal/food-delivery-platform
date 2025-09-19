@@ -31,7 +31,7 @@ describe('NotificationService', () => {
       orderBy: jest.fn().mockReturnThis(),
       skip: jest.fn().mockReturnThis(),
       take: jest.fn().mockReturnThis(),
-      getManyAndCount: jest.fn(),
+      getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
     })),
   };
 
@@ -278,26 +278,40 @@ describe('NotificationService', () => {
     ];
 
     it('should return paginated notifications for a user', async () => {
-      const queryBuilder = repository.createQueryBuilder();
-      queryBuilder.getManyAndCount.mockResolvedValue([notifications, 2]);
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([notifications, 2]),
+      };
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
 
       const result = await service.getUserNotifications(userId);
 
-      expect(queryBuilder.where).toHaveBeenCalledWith('notification.userId = :userId', { userId });
-      expect(queryBuilder.orderBy).toHaveBeenCalledWith('notification.createdAt', 'DESC');
-      expect(queryBuilder.skip).toHaveBeenCalledWith(0);
-      expect(queryBuilder.take).toHaveBeenCalledWith(10);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('notification.userId = :userId', { userId });
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('notification.createdAt', 'DESC');
+      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(0);
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
       expect(result).toEqual({ notifications, total: 2 });
     });
 
     it('should filter by status if provided', async () => {
-      const queryBuilder = repository.createQueryBuilder();
-      queryBuilder.getManyAndCount.mockResolvedValue([[notifications[0]], 1]);
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([[notifications[0]], 1]),
+      };
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
 
       const result = await service.getUserNotifications(userId, NotificationStatus.UNREAD);
 
-      expect(queryBuilder.where).toHaveBeenCalledWith('notification.userId = :userId', { userId });
-      expect(queryBuilder.andWhere).toHaveBeenCalledWith('notification.status = :status', {
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('notification.userId = :userId', { userId });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('notification.status = :status', {
         status: NotificationStatus.UNREAD,
       });
       expect(result).toEqual({ notifications: [notifications[0]], total: 1 });

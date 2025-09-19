@@ -16,6 +16,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PerformanceModule } from './modules/performance/performance.module';
 import { DatabaseModule } from './modules/database/database.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
+import { BackupModule } from './modules/backup/backup.module';
+import { SecurityModule } from './common/security/security.module';
 
 /**
  * AppModule is the root module of the SwiftEats backend application.
@@ -35,7 +37,9 @@ import { ObservabilityModule } from './modules/observability/observability.modul
     SimulatorModule,
     NotificationsModule,
     PerformanceModule,
-    ObservabilityModule
+    ObservabilityModule,
+    BackupModule,
+    SecurityModule
   ],
   providers: [
     { provide: APP_GUARD, useClass: RolesGuard }

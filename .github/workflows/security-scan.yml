@@ -1,0 +1,209 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  dependency-check:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run npm audit
+      run: npm audit --audit-level=moderate
+      
+    - name: Run Snyk vulnerability scan
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=medium
+        
+  code-security-scan:
+    name: Code Security Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/init@v3
+      with:
+        languages: typescript, javascript
+        
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+      
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      
+  secret-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run TruffleHog
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+        
+  docker-security-scan:
+    name: Docker Image Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Build Docker image
+      run: docker build -t swifteats-backend:latest .
+      
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'swifteats-backend:latest'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'
+        
+  security-policy-check:
+    name: Security Policy Compliance
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Check for security policy files
+      run: |
+        echo "Checking for required security files..."
+        
+        # Check for SECURITY.md
+        if [ ! -f "SECURITY.md" ]; then
+          echo "❌ SECURITY.md not found"
+          exit 1
+        else
+          echo "✅ SECURITY.md found"
+        fi
+        
+        # Check for .env.example (should not contain real secrets)
+        if [ -f ".env.example" ]; then
+          if grep -q "change-me\|example\|placeholder\|AAAAAAAAAA" .env.example; then
+            echo "✅ .env.example contains placeholder values"
+          else
+            echo "❌ .env.example may contain real secrets"
+            exit 1
+          fi
+        fi
+        
+        # Check for proper .gitignore
+        if [ -f ".gitignore" ]; then
+          if grep -q "\.env$" .gitignore && grep -q "node_modules" .gitignore; then
+            echo "✅ .gitignore properly configured"
+          else
+            echo "❌ .gitignore missing important entries"
+            exit 1
+          fi
+        fi
+        
+  license-compliance:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install license-checker
+      run: npm install -g license-checker
+      
+    - name: Check licenses
+      run: |
+        license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD' --excludePrivatePackages
+        
+  security-headers-test:
+    name: Security Headers Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build application
+      run: npm run build
+      
+    - name: Start application
+      run: |
+        npm start &
+        sleep 10
+        
+    - name: Test security headers
+      run: |
+        echo "Testing security headers..."
+        
+        # Test for security headers
+        response=$(curl -s -I http://localhost:3000/api/v1/health)
+        
+        if echo "$response" | grep -i "x-frame-options"; then
+          echo "✅ X-Frame-Options header present"
+        else
+          echo "❌ X-Frame-Options header missing"
+          exit 1
+        fi
+        
+        if echo "$response" | grep -i "x-content-type-options"; then
+          echo "✅ X-Content-Type-Options header present"
+        else
+          echo "❌ X-Content-Type-Options header missing"
+          exit 1
+        fi
+        
+        if echo "$response" | grep -i "strict-transport-security"; then
+          echo "✅ Strict-Transport-Security header present"
+        else
+          echo "⚠️  Strict-Transport-Security header missing (may be expected in dev)"
+        fi
