@@ -56,7 +56,7 @@ export class PaymentsController {
 
       return this.createPaymentResponse(resultWithId, processPaymentDto);
     } catch (error) {
-      return this.handlePaymentError(error as Error, 'processing payment');
+      this.handlePaymentError(error as Error, 'processing payment');
     }
   }
 
@@ -106,7 +106,7 @@ export class PaymentsController {
 
       return this.createRefundResponse(result, payment, refundPaymentDto);
     } catch (error) {
-      return this.handlePaymentError(error as Error, 'refunding payment');
+      this.handlePaymentError(error as Error, 'refunding payment');
     }
   }
 
@@ -168,9 +168,12 @@ export class PaymentsController {
   @Roles('customer', 'admin')
   async getPaymentsByOrder(@Param('orderId') orderId: string): Promise<PaymentEntity[]> {
     try {
-      return this.paymentsService.getPaymentsByOrderId(orderId);
+      return await this.paymentsService.getPaymentsByOrderId(orderId);
     } catch (error) {
-      return this.handlePaymentError(error as Error, 'retrieving order payments');
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.handlePaymentError(error as Error, 'retrieving order payments');
     }
   }
 

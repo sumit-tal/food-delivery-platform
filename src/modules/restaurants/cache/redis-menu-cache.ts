@@ -56,7 +56,14 @@ export class RedisMenuCache implements MenuCache {
     }
     const menuKey = this.keyVersion(restaurantId, version);
     const json = await c.get(menuKey);
-    return json ? (JSON.parse(json) as MenuModel) : null;
+    if (!json) {
+      return null;
+    }
+    try {
+      return JSON.parse(json) as MenuModel;
+    } catch {
+      return null;
+    }
   }
 
   public async set(menu: MenuModel): Promise<void> {

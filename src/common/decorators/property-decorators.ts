@@ -9,7 +9,7 @@ import { registerDecorator, ValidationOptions } from 'class-validator';
  */
 export function createPropertyDecorator(
   validationFunction: (value: any) => boolean,
-  validationOptions?: ValidationOptions
+  validationOptions?: ValidationOptions,
 ) {
   return function (target: object, propertyName: string) {
     registerDecorator({
