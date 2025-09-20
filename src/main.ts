@@ -6,10 +6,6 @@ import { NestFactory } from '@nestjs/core';
 config();
 
 // Debug: Log critical environment variables
-console.log('Environment variables loaded:');
-console.log('ELASTICSEARCH_ENABLED:', process.env.ELASTICSEARCH_ENABLED);
-console.log('ALERTING_ENABLED:', process.env.ALERTING_ENABLED);
-console.log('POSTGIS_REQUIRED:', process.env.POSTGIS_REQUIRED);
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import * as fs from 'fs';
@@ -23,7 +19,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 function getHttpsOptions(): any {
   const isProduction = process.env.NODE_ENV === 'production';
-  
+
   if (!isProduction) {
     return undefined; // Use HTTP in development
   }
@@ -32,7 +28,7 @@ function getHttpsOptions(): any {
     // In production, load SSL certificates
     const keyPath = process.env.SSL_KEY_PATH || '/etc/ssl/private/server.key';
     const certPath = process.env.SSL_CERT_PATH || '/etc/ssl/certs/server.crt';
-    
+
     if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
       return {
         key: fs.readFileSync(keyPath),
@@ -42,45 +38,47 @@ function getHttpsOptions(): any {
   } catch (error) {
     console.warn('SSL certificates not found, falling back to HTTP');
   }
-  
+
   return undefined;
 }
 
 async function bootstrap(): Promise<void> {
   // HTTPS Configuration for production
   const httpsOptions = getHttpsOptions();
-  const app = await NestFactory.create(AppModule, { 
+  const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
     httpsOptions,
   });
 
   // Security Headers with Helmet
-  app.use(helmet({
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true,
-    },
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'none'"],
+  app.use(
+    helmet({
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
       },
-    },
-    crossOriginEmbedderPolicy: false,
-  }));
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'"],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
 
   // Security validation middleware
   const securityValidationMiddleware = app.get(SecurityValidationMiddleware);
   app.use(securityValidationMiddleware.use.bind(securityValidationMiddleware));
-  
+
   // Enhanced compression middleware
   const compressionMiddleware = app.get(EnhancedCompressionMiddleware);
   app.use(compressionMiddleware.use.bind(compressionMiddleware));
