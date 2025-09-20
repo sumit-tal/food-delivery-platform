@@ -19,6 +19,14 @@ tags:
   - name: Auth
   - name: Profiles
   - name: Restaurants
+  - name: Backup
+  - name: Geofencing
+  - name: Notifications
+  - name: Orders
+  - name: Payments
+  - name: Performance
+  - name: Simulator
+  - name: Tracking
 
 paths:
   /api/v1/health:
@@ -157,7 +165,7 @@ paths:
                 $ref: '#/components/schemas/ProfileView'
         '401':
           description: Unauthorized
-  /api/v1/restaurants:
+  /api/v1/restaurants/list:
     get:
       tags: [Restaurants]
       summary: List restaurants
@@ -195,6 +203,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RestaurantsListResponse'
+  /api/v1/restaurants/onboard:
     post:
       tags: [Restaurants]
       summary: Onboard a restaurant
@@ -294,6 +303,838 @@ paths:
           description: Unauthorized
         '403':
           description: Forbidden
+  /api/v1/backup/status:
+    get:
+      tags: [Backup]
+      summary: Get backup system status and metrics
+      operationId: getBackupStatus
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+  /api/v1/backup/full:
+    post:
+      tags: [Backup]
+      summary: Trigger manual full backup
+      operationId: triggerFullBackup
+      responses:
+        '202':
+          description: Accepted
+  /api/v1/backup/incremental:
+    post:
+      tags: [Backup]
+      summary: Trigger manual incremental backup
+      operationId: triggerIncrementalBackup
+      responses:
+        '202':
+          description: Accepted
+  /api/v1/backup/transaction-log:
+    post:
+      tags: [Backup]
+      summary: Trigger manual transaction log backup
+      operationId: triggerTransactionLogBackup
+      responses:
+        '202':
+          description: Accepted
+  /api/v1/backup/verify/{backupId}:
+    post:
+      tags: [Backup]
+      summary: Verify backup integrity
+      operationId: verifyBackupIntegrity
+      parameters:
+        - in: path
+          name: backupId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/backup/restore:
+    post:
+      tags: [Backup]
+      summary: Restore database from backup
+      operationId: restoreDatabase
+      responses:
+        '202':
+          description: Accepted
+  /api/v1/backup/disaster-recovery/status:
+    get:
+      tags: [Backup]
+      summary: Get disaster recovery system status
+      operationId: getDisasterRecoveryStatus
+      responses:
+        '200':
+          description: OK
+  /api/v1/backup/disaster-recovery/test:
+    post:
+      tags: [Backup]
+      summary: Test disaster recovery procedures
+      operationId: testDisasterRecovery
+      responses:
+        '202':
+          description: Accepted
+  /api/v1/backup/failover:
+    post:
+      tags: [Backup]
+      summary: Trigger failover to secondary system
+      operationId: triggerFailover
+      responses:
+        '202':
+          description: Accepted
+  /api/v1/backup/history:
+    get:
+      tags: [Backup]
+      summary: Get backup history
+      operationId: getBackupHistory
+      responses:
+        '200':
+          description: OK
+  /api/v1/backup/cleanup:
+    post:
+      tags: [Backup]
+      summary: Clean up old backups manually
+      operationId: cleanupOldBackups
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/delivery-zone:
+    post:
+      tags: [Geofencing]
+      summary: Create a delivery zone
+      operationId: createDeliveryZone
+      responses:
+        '201':
+          description: Created
+    get:
+      tags: [Geofencing]
+      summary: Get all delivery zones
+      operationId: getAllDeliveryZones
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/delivery-zone/active:
+    get:
+      tags: [Geofencing]
+      summary: Get active delivery zones
+      operationId: getActiveDeliveryZones
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/delivery-zone/{id}:
+    get:
+      tags: [Geofencing]
+      summary: Get delivery zone by ID
+      operationId: getDeliveryZoneById
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+    put:
+      tags: [Geofencing]
+      summary: Update delivery zone by ID
+      operationId: updateDeliveryZone
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags: [Geofencing]
+      summary: Delete delivery zone by ID
+      operationId: deleteDeliveryZone
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/delivery-zone/contains:
+    get:
+      tags: [Geofencing]
+      summary: Find delivery zones containing a point
+      operationId: findDeliveryZonesContainingPoint
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/delivery-zone/radius:
+    get:
+      tags: [Geofencing]
+      summary: Find delivery zones within a radius
+      operationId: findDeliveryZonesWithinRadius
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/delivery-zone/estimate-time:
+    get:
+      tags: [Geofencing]
+      summary: Calculate estimated delivery time
+      operationId: calculateEstimatedDeliveryTime
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/delivery-zone/calculate-fee:
+    get:
+      tags: [Geofencing]
+      summary: Calculate delivery fee
+      operationId: calculateDeliveryFee
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/driver-assignment/best-drivers:
+    post:
+      tags: [Geofencing]
+      summary: Find best drivers for a restaurant
+      operationId: findBestDriversForRestaurant
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/driver-assignment/assign-driver:
+    post:
+      tags: [Geofencing]
+      summary: Assign best driver for an order
+      operationId: assignBestDriverForOrder
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/driver-assignment/estimate-delivery-time:
+    post:
+      tags: [Geofencing]
+      summary: Calculate estimated delivery time for an order
+      operationId: calculateEstimatedDeliveryTimeForOrder
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/driver-assignment/drivers-nearby:
+    get:
+      tags: [Geofencing]
+      summary: Get nearby drivers
+      operationId: getNearbyDrivers
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/geofence-event/update-location:
+    post:
+      tags: [Geofencing]
+      summary: Update entity location
+      operationId: updateEntityLocation
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/geofence-event/location/{entityType}/{entityId}:
+    get:
+      tags: [Geofencing]
+      summary: Get entity location
+      operationId: getEntityLocation
+      parameters:
+        - in: path
+          name: entityType
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: entityId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags: [Geofencing]
+      summary: Clear entity location
+      operationId: clearEntityLocation
+      parameters:
+        - in: path
+          name: entityType
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: entityId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/geofence-event/in-geofence/{geofenceId}:
+    get:
+      tags: [Geofencing]
+      summary: Get entities in geofence
+      operationId: getEntitiesInGeofence
+      parameters:
+        - in: path
+          name: geofenceId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/geofence:
+    post:
+      tags: [Geofencing]
+      summary: Create a geofence
+      operationId: createGeofence
+      responses:
+        '201':
+          description: Created
+    get:
+      tags: [Geofencing]
+      summary: Get all geofences
+      operationId: getAllGeofences
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/geofence/{id}:
+    get:
+      tags: [Geofencing]
+      summary: Get geofence by ID
+      operationId: getGeofenceById
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+    put:
+      tags: [Geofencing]
+      summary: Update geofence by ID
+      operationId: updateGeofence
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags: [Geofencing]
+      summary: Delete geofence by ID
+      operationId: deleteGeofence
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/geofence/contains:
+    post:
+      tags: [Geofencing]
+      summary: Check if point is in geofences
+      operationId: checkPointInGeofences
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/geofence/radius:
+    get:
+      tags: [Geofencing]
+      summary: Find geofences within a radius
+      operationId: findGeofencesWithinRadius
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/proximity-search/distance:
+    post:
+      tags: [Geofencing]
+      summary: Calculate distance between points
+      operationId: calculateDistance
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/proximity-search/restaurants:
+    post:
+      tags: [Geofencing]
+      summary: Find restaurants nearby
+      operationId: findRestaurantsNearby
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/proximity-search/drivers:
+    post:
+      tags: [Geofencing]
+      summary: Find drivers nearby
+      operationId: findDriversNearby
+      responses:
+        '200':
+          description: OK
+  /api/v1/geofencing/proximity-search/search:
+    get:
+      tags: [Geofencing]
+      summary: Find entities nearby
+      operationId: findEntitiesNearby
+      responses:
+        '200':
+          description: OK
+  /api/v1/notifications:
+    post:
+      tags: [Notifications]
+      summary: Create a new notification
+      operationId: createNotification
+      responses:
+        '201':
+          description: Created
+  /api/v1/notifications/user/{userId}:
+    get:
+      tags: [Notifications]
+      summary: Get user notifications
+      operationId: getUserNotifications
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/notifications/user/{userId}/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Get unread notification count
+      operationId: getUnreadCount
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/notifications/{notificationId}:
+    delete:
+      tags: [Notifications]
+      summary: Delete a notification
+      operationId: deleteNotification
+      parameters:
+        - in: path
+          name: notificationId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No Content
+  /api/v1/notifications/preferences:
+    get:
+      tags: [Notifications]
+      summary: Get user notification preferences
+      operationId: getUserPreferences
+      responses:
+        '200':
+          description: OK
+  /api/v1/notifications/preferences/default/{userId}:
+    post:
+      tags: [Notifications]
+      summary: Set default notification preferences
+      operationId: setDefaultPreferences
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/notifications/templates:
+    post:
+      tags: [Notifications]
+      summary: Create a notification template
+      operationId: createTemplate
+      responses:
+        '201':
+          description: Created
+  /api/v1/notifications/templates/{templateKey}:
+    get:
+      tags: [Notifications]
+      summary: Get a notification template
+      operationId: getTemplate
+      parameters:
+        - in: path
+          name: templateKey
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags: [Notifications]
+      summary: Delete a notification template
+      operationId: deleteTemplate
+      parameters:
+        - in: path
+          name: templateKey
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No Content
+  /api/v1/notifications/send-templated:
+    post:
+      tags: [Notifications]
+      summary: Send a notification using a template
+      operationId: sendTemplatedNotification
+      responses:
+        '200':
+          description: OK
+  /api/v1/orders:
+    post:
+      tags: [Orders]
+      summary: Create a new order
+      operationId: createOrder
+      responses:
+        '201':
+          description: Created
+  /api/v1/orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Get an order by ID
+      operationId: getOrderById
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/orders/user/me:
+    get:
+      tags: [Orders]
+      summary: Get orders for the current user
+      operationId: getMyOrders
+      responses:
+        '200':
+          description: OK
+  /api/v1/orders/restaurant/{restaurantId}:
+    get:
+      tags: [Orders]
+      summary: Get orders for a restaurant
+      operationId: getRestaurantOrders
+      parameters:
+        - in: path
+          name: restaurantId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/orders/{id}/history:
+    get:
+      tags: [Orders]
+      summary: Get order history
+      operationId: getOrderHistory
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/payments:
+    post:
+      tags: [Payments]
+      summary: Process a payment
+      operationId: processPayment
+      responses:
+        '201':
+          description: Created
+  /api/v1/payments/refund:
+    post:
+      tags: [Payments]
+      summary: Refund a payment
+      operationId: refundPayment
+      responses:
+        '201':
+          description: Created
+  /api/v1/payments/{id}:
+    get:
+      tags: [Payments]
+      summary: Get a payment by ID
+      operationId: getPayment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/payments/order/{orderId}:
+    get:
+      tags: [Payments]
+      summary: Get payments by order
+      operationId: getPaymentsByOrder
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/performance/health:
+    get:
+      tags: [Performance]
+      summary: Get system health metrics
+      operationId: getSystemHealthMetrics
+      responses:
+        '200':
+          description: OK
+  /api/v1/performance/analyze-indexes:
+    post:
+      tags: [Performance]
+      summary: Analyze database indexes
+      operationId: analyzeIndexes
+      responses:
+        '200':
+          description: OK
+  /api/v1/profiles/me:
+    get:
+      tags: [Profiles]
+      summary: Get current user profile
+      operationId: getMe
+      responses:
+        '200':
+          description: OK
+  /api/v1/restaurants/{restaurantId}/menu:
+    get:
+      tags: [Restaurants]
+      summary: Get restaurant menu
+      operationId: getMenu
+      parameters:
+        - in: path
+          name: restaurantId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+    put:
+      tags: [Restaurants]
+      summary: Update restaurant menu
+      operationId: updateMenu
+      parameters:
+        - in: path
+          name: restaurantId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/restaurants/cache/warm:
+    post:
+      tags: [Restaurants]
+      summary: Pre-warm cache with popular restaurant menus
+      operationId: warmCache
+      responses:
+        '200':
+          description: OK
+  /api/v1/restaurants/cache/stats:
+    get:
+      tags: [Restaurants]
+      summary: Get cache statistics
+      operationId: getCacheStats
+      responses:
+        '200':
+          description: OK
+  /api/v1/simulator:
+    get:
+      tags: [Simulator]
+      summary: Get simulator status
+      operationId: getSimulatorStatus
+      responses:
+        '200':
+          description: OK
+  /api/v1/simulator/start:
+    post:
+      tags: [Simulator]
+      summary: Start the simulator
+      operationId: startSimulator
+      responses:
+        '200':
+          description: OK
+  /api/v1/simulator/stop:
+    post:
+      tags: [Simulator]
+      summary: Stop the simulator
+      operationId: stopSimulator
+      responses:
+        '200':
+          description: OK
+  /api/v1/simulator/config:
+    post:
+      tags: [Simulator]
+      summary: Update simulator configuration
+      operationId: updateSimulatorConfig
+      responses:
+        '200':
+          description: OK
+  /api/v1/simulator/drivers:
+    get:
+      tags: [Simulator]
+      summary: Get all virtual drivers
+      operationId: getAllVirtualDrivers
+      responses:
+        '200':
+          description: OK
+  /api/v1/simulator/drivers/{id}:
+    get:
+      tags: [Simulator]
+      summary: Get a specific driver by ID
+      operationId: getDriverById
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/simulator/drivers/{id}/destination:
+    post:
+      tags: [Simulator]
+      summary: Set a destination for a driver
+      operationId: setDriverDestination
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/simulator/visualization:
+    get:
+      tags: [Simulator]
+      summary: Generate visualization
+      operationId: generateVisualization
+      responses:
+        '200':
+          description: OK
+  /api/v1/simulator/geojson:
+    get:
+      tags: [Simulator]
+      summary: Generate GeoJSON
+      operationId: generateGeoJSON
+      responses:
+        '200':
+          description: OK
+  /api/v1/tracking/location:
+    post:
+      tags: [Tracking]
+      summary: Update driver location
+      operationId: updateDriverLocation
+      responses:
+        '200':
+          description: OK
+  /api/v1/tracking/simulator/location:
+    post:
+      tags: [Tracking]
+      summary: Update simulator location
+      operationId: updateSimulatorLocation
+      responses:
+        '200':
+          description: OK
+  /api/v1/tracking/driver/{driverId}/location:
+    get:
+      tags: [Tracking]
+      summary: Get the latest driver location
+      operationId: getDriverLocation
+      parameters:
+        - in: path
+          name: driverId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/tracking/driver/{driverId}/history:
+    get:
+      tags: [Tracking]
+      summary: Get driver location history
+      operationId: getDriverHistory
+      parameters:
+        - in: path
+          name: driverId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/tracking/nearby:
+    get:
+      tags: [Tracking]
+      summary: Find nearby drivers
+      operationId: findNearbyDrivers
+      responses:
+        '200':
+          description: OK
+  /api/v1/tracking/order/{orderId}:
+    get:
+      tags: [Tracking]
+      summary: Get tracking information for an order
+      operationId: getOrderTracking
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/tracking/health:
+    get:
+      tags: [Tracking]
+      summary: Health check for tracking service
+      operationId: healthCheck
+      responses:
+        '200':
+          description: OK
 
 components:
   securitySchemes:

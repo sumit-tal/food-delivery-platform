@@ -99,6 +99,34 @@ Copy `.env.example` to `.env` and set values:
   curl http://localhost:3000/api/v1/health
   ```
 
+## Docker Compose
+To build and run the system locally using Docker Compose, follow these steps:
+
+1. **Ensure Docker is installed**: Make sure you have Docker and Docker Compose installed on your machine.
+
+2. **Copy the environment file**: Duplicate the example environment file and modify it as needed:
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Build and start the containers**: Use Docker Compose to build the images and start the containers:
+   ```bash
+   docker-compose up --build
+   ```
+   This command will build the necessary Docker images and start the containers as defined in the `docker-compose.yml` file.
+
+4. **Verify the setup**: Once the containers are running, verify that the application is working correctly by accessing the health check endpoint:
+   ```bash
+   curl http://localhost:3000/api/v1/health
+   ```
+   You should receive a response indicating the status, uptime, and timestamp.
+
+5. **Stopping the containers**: To stop the running containers, use:
+   ```bash
+   docker-compose down
+   ```
+   This will stop and remove the containers, networks, and volumes defined in the `docker-compose.yml` file.
+
 ## Kubernetes (dev)
 Manifests are in `deploy/`. Update `image:` in `deploy/deployment.yaml` to your registry (e.g., GHCR/ECR).
 

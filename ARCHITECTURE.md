@@ -19,6 +19,7 @@ SwiftEats backend is a modular monolith built with NestJS and TypeScript. The de
   - Lower operational complexity: one codebase, one deployment pipeline, simple local dev.
   - Easier to refactor domain boundaries early while requirements evolve.
   - Avoids premature network boundaries and distributed system pitfalls.
+  - **Detailed Justification:** The modular monolith architecture allows for rapid development and iteration, especially during the early stages of the project where requirements are still evolving. It provides a unified codebase that simplifies debugging and testing, reducing the overhead associated with managing multiple microservices. This approach is particularly beneficial for startups or projects in their infancy, where the focus is on delivering features quickly without the added complexity of managing distributed systems.
 - Evolution path
   - Modules are designed with clear interfaces and DI, allowing extraction into services if needed (for example, catalog as a separate service) without wholesale rewrite.
 
@@ -52,6 +53,28 @@ Diagram (textual):
   -> Cross-cutting: Validation Pipe, Exception Filter, Logging Interceptor, Roles Guard
 - Observability: Console logs (for now), readiness/liveness probes via Health module
 - Platform: Docker container orchestrated by Kubernetes (dev/stage/prod)
+
+## Technology Justification
+
+- **NestJS and TypeScript**
+  - Strong modularity, DI, and testability; aligns with domain-driven module boundaries.
+  - TypeScript strict mode improves runtime safety and developer productivity.
+  - **Detailed Justification:** NestJS provides a robust framework for building scalable server-side applications. Its modular architecture aligns well with the project's need for clear domain boundaries, and TypeScript's strong typing enhances code quality and maintainability. The choice of NestJS also leverages a large ecosystem of libraries and tools, facilitating rapid development.
+- **PostgreSQL**
+  - Mature relational database with strong indexing and transactional guarantees; well-suited for catalog queries and append-only menu versioning.
+  - **Detailed Justification:** PostgreSQL's advanced indexing capabilities and support for complex queries make it ideal for handling the platform's data-intensive operations. Its ACID compliance ensures data integrity, which is crucial for transactional operations like order processing and user authentication.
+- **Redis**
+  - High-performance, low-latency read cache enabling versioned, atomic menu delivery and fast catalog responses.
+  - **Detailed Justification:** Redis is chosen for its speed and efficiency in handling read-heavy workloads. Its in-memory data store capabilities significantly reduce the response time for frequently accessed data, such as restaurant menus, enhancing the user experience.
+- **Docker and Kubernetes**
+  - Standardized runtime and horizontal scaling via replicas; clear separation of concerns between build and runtime.
+  - **Detailed Justification:** Docker and Kubernetes provide a flexible and scalable environment for deploying applications. Docker ensures consistency across development and production environments, while Kubernetes offers powerful orchestration features that simplify scaling and managing application workloads.
+- **GitHub Actions**
+  - Reliable, maintainable CI for lint, build, and test; supports branch protection and conventional commits.
+  - **Detailed Justification:** GitHub Actions integrates seamlessly with the existing development workflow, automating the CI/CD pipeline and ensuring that code quality checks are enforced consistently across all branches.
+- **Jest, ESLint, Prettier**
+  - Testing and quality gates that reinforce maintainability and consistent code style across the codebase.
+  - **Detailed Justification:** These tools help maintain a high standard of code quality by enforcing style guidelines and providing a robust testing framework. Jest's mocking capabilities, combined with ESLint and Prettier's formatting rules, ensure that the codebase remains clean and maintainable over time.
 
 ## Data architecture
 
@@ -92,21 +115,9 @@ Diagram (textual):
 - CI/CD: GitHub Actions pipeline enforces lint, build, and test on every change to main and pull requests.
 - Environments: Development, staging, production with environment-specific configuration and manifests.
 
-## Technology justification
+## Diagram
 
-- NestJS and TypeScript
-  - Strong modularity, DI, and testability; aligns with domain-driven module boundaries.
-  - TypeScript strict mode improves runtime safety and developer productivity.
-- PostgreSQL
-  - Mature relational database with strong indexing and transactional guarantees; well-suited for catalog queries and append-only menu versioning.
-- Redis
-  - High-performance, low-latency read cache enabling versioned, atomic menu delivery and fast catalog responses.
-- Docker and Kubernetes
-  - Standardized runtime and horizontal scaling via replicas; clear separation of concerns between build and runtime.
-- GitHub Actions
-  - Reliable, maintainable CI for lint, build, and test; supports branch protection and conventional commits.
-- Jest, ESLint, Prettier
-  - Testing and quality gates that reinforce maintainability and consistent code style across the codebase.
+A detailed diagram illustrating the components and their communication flows has been added to the [architecture-diagram.md](architecture-diagram.md) file.
 
 ## Trade-offs and non-goals
 

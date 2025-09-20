@@ -1,5 +1,4 @@
 import { Controller, Get, Patch, Body, UseGuards, Request } from '@nestjs/common';
-import { APP_CONSTANTS } from '../../common/constants/app.constants';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -14,14 +13,16 @@ interface ProfileView {
   readonly address?: string;
 }
 
-@Controller(`${APP_CONSTANTS.API_PREFIX}/${APP_CONSTANTS.API_VERSION}/profile`)
+@Controller('profile')
 @UseGuards(JwtAuthGuard)
 export class ProfilesController {
-  public constructor(private readonly users: UsersService, private readonly crypto: CryptoService) {}
+  public constructor(
+    private readonly users: UsersService,
+    private readonly crypto: CryptoService,
+  ) {}
 
   @Get('me')
-  public getMe(@Request() req: { user: { sub: string } }): ProfileView
-  {
+  public getMe(@Request() req: { user: { sub: string } }): ProfileView {
     const u = this.users.getById(req.user.sub);
     return {
       id: u.id,
@@ -29,14 +30,18 @@ export class ProfilesController {
       role: u.role,
       fullName: u.fullName,
       phone: u.phoneEncrypted ? this.crypto.decrypt(u.phoneEncrypted) : undefined,
-      address: u.addressEncrypted ? this.crypto.decrypt(u.addressEncrypted) : undefined
+      address: u.addressEncrypted ? this.crypto.decrypt(u.addressEncrypted) : undefined,
     };
   }
 
   @Patch('me')
-  public updateMe(@Request() req: { user: { sub: string } }, @Body() dto: UpdateProfileDto): ProfileView
-  {
-    const updated = this.users.updateProfile(req.user.sub, dto, (v: string) => this.crypto.encrypt(v));
+  public updateMe(
+    @Request() req: { user: { sub: string } },
+    @Body() dto: UpdateProfileDto,
+  ): ProfileView {
+    const updated = this.users.updateProfile(req.user.sub, dto, (v: string) =>
+      this.crypto.encrypt(v),
+    );
     const u = this.users.getById(updated.id);
     return {
       id: u.id,
@@ -44,7 +49,7 @@ export class ProfilesController {
       role: u.role,
       fullName: u.fullName,
       phone: u.phoneEncrypted ? this.crypto.decrypt(u.phoneEncrypted) : undefined,
-      address: u.addressEncrypted ? this.crypto.decrypt(u.addressEncrypted) : undefined
+      address: u.addressEncrypted ? this.crypto.decrypt(u.addressEncrypted) : undefined,
     };
   }
 }

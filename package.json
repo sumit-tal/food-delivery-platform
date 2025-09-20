@@ -23,7 +23,15 @@
     "test:performance": "npm run test:load:orders && npm run test:load:tracking",
     "test:load:all": "./scripts/run-load-tests.sh",
     "prepare": "husky install",
-    "optimize-indexes": "ts-node scripts/optimize-indexes.ts"
+    "optimize-indexes": "ts-node scripts/optimize-indexes.ts",
+    "typeorm": "typeorm-ts-node-commonjs -d src/config/typeorm.config.ts",
+    "migration:create": "typeorm-ts-node-commonjs migration:create src/migrations/$npm_config_name",
+    "migration:generate": "npm run typeorm -- migration:generate src/migrations/$npm_config_name",
+    "migration:run": "npm run typeorm -- migration:run",
+    "migration:revert": "npm run typeorm -- migration:revert",
+    "migration:show": "npm run typeorm -- migration:show",
+    "schema:sync": "npm run typeorm -- schema:sync",
+    "schema:drop": "npm run typeorm -- schema:drop"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.10.0",

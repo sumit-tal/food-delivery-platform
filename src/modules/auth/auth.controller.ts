@@ -2,10 +2,9 @@ import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common'
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LocalAuthGuard } from '../../common/guards/local-auth.guard';
-import { APP_CONSTANTS } from '../../common/constants/app.constants';
 import { GoogleAuthGuard } from '../../common/guards/google-auth.guard';
 
-@Controller(`${APP_CONSTANTS.API_PREFIX}/${APP_CONSTANTS.API_VERSION}/auth`)
+@Controller('auth')
 export class AuthController {
   public constructor(private readonly authService: AuthService) {}
 

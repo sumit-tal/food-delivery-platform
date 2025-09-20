@@ -1,0 +1,267 @@
+version: '3.8'
+
+services:
+  # Core API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: swifteats-api
+    restart: unless-stopped
+    ports:
+      - '${PORT:-3000}:3000'
+      - '${WS_PORT:-3001}:3001'
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=${PORT:-3000}
+      - WS_PORT=${WS_PORT:-3001}
+      - JWT_SECRET=${JWT_SECRET:-dev-change-me-super-secret}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-15m}
+      - JWT_ISSUER=${JWT_ISSUER:-swifteats}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-swifteats-api}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - PG_HOST=postgres
+      - PG_PORT=5432
+      - PG_USER=${PG_USER:-postgresnew}
+      - PG_PASSWORD=${PG_PASSWORD:-postgres}
+      - PG_DATABASE=${PG_DATABASE:-swifteats}
+      - REDIS_URL=redis://redis:6379
+      - REDIS_KEY_PREFIX=${REDIS_KEY_PREFIX:-se}
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+      - RATE_LIMIT_REDIS_URL=redis://redis:6379
+      - CACHE_PROVIDER=${CACHE_PROVIDER:-redis}
+      - METRICS_PORT=${METRICS_PORT:-9090}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - TRACING_ENABLED=${TRACING_ENABLED:-false}
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - app-network
+      - observability-network
+
+  # PostgreSQL with PostGIS for geospatial data
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: swifteats-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${PG_USER:-postgresnew}
+      - POSTGRES_PASSWORD=${PG_PASSWORD:-postgres}
+      - POSTGRES_DB=${PG_DATABASE:-swifteats}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./pg_archive:/pg_archive
+    networks:
+      - app-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${PG_USER:-postgresnew}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL Replica for high availability
+  postgres_replica:
+    image: postgis/postgis:16-3.4
+    container_name: swifteats-postgres-replica
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${PG_USER:-postgresnew}
+      - POSTGRES_PASSWORD=${PG_PASSWORD:-postgres}
+      - POSTGRES_DB=${PG_DATABASE:-swifteats}
+      # Additional replica configuration would be needed for real replication
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    depends_on:
+      - postgres
+
+  # Redis for caching, rate limiting, and message queue
+  redis:
+    image: redis:7.2-alpine
+    container_name: swifteats-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - app-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Message Queue for location updates and background jobs
+  bull_dashboard:
+    image: deadly0/bull-board:latest
+    container_name: swifteats-bull-dashboard
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - BULL_PREFIX=${REDIS_KEY_PREFIX:-se}
+    ports:
+      - '3002:3000'
+    depends_on:
+      - redis
+    networks:
+      - app-network
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: swifteats-prometheus
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./deploy/prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - '9090:9090'
+    restart: unless-stopped
+    networks:
+      - observability-network
+
+  # AlertManager for alerts
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: swifteats-alertmanager
+    volumes:
+      - ./deploy/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - '9093:9093'
+    restart: unless-stopped
+    networks:
+      - observability-network
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: swifteats-grafana
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+    ports:
+      - '3003:3000' # Changed from 3000 to avoid conflict with API
+    restart: unless-stopped
+    networks:
+      - observability-network
+    depends_on:
+      - prometheus
+
+  # Elasticsearch for log storage
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.4
+    container_name: swifteats-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - '9200:9200'
+    restart: unless-stopped
+    networks:
+      - observability-network
+
+  # Logstash for log processing
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.10.4
+    container_name: swifteats-logstash
+    volumes:
+      - ./deploy/logstash/pipeline:/usr/share/logstash/pipeline
+      - ./deploy/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+    ports:
+      - '5044:5044'
+      - '5000:5000/tcp'
+      - '5000:5000/udp'
+      - '9600:9600'
+    environment:
+      LS_JAVA_OPTS: '-Xmx256m -Xms256m'
+    restart: unless-stopped
+    networks:
+      - observability-network
+    depends_on:
+      - elasticsearch
+
+  # Kibana for log visualization
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.4
+    container_name: swifteats-kibana
+    ports:
+      - '5601:5601'
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    restart: unless-stopped
+    networks:
+      - observability-network
+    depends_on:
+      - elasticsearch
+
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.49
+    container_name: swifteats-jaeger
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - '6831:6831/udp'
+      - '6832:6832/udp'
+      - '5778:5778'
+      - '16686:16686'
+      - '14250:14250'
+      - '14268:14268'
+      - '14269:14269'
+      - '9411:9411'
+    restart: unless-stopped
+    networks:
+      - observability-network
+
+networks:
+  app-network:
+    driver: bridge
+  observability-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  postgres_replica_data:
+  redis_data:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:
+  elasticsearch_data:
