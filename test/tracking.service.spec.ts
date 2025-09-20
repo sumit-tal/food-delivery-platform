@@ -76,7 +76,9 @@ describe('TrackingService', () => {
 
       const result = await service.processLocationUpdate(locationUpdate);
 
-      expect(mockLocationProcessingService.processLocationUpdate).toHaveBeenCalledWith(locationUpdate);
+      expect(mockLocationProcessingService.processLocationUpdate).toHaveBeenCalledWith(
+        locationUpdate,
+      );
       expect(mockDriverLocationRepository.saveLocation).toHaveBeenCalledWith(locationUpdate);
       expect(result).toBe(locationId);
     });
@@ -127,12 +129,13 @@ describe('TrackingService', () => {
     it('should return database location if in-memory location is not available', async () => {
       const driverId = '123e4567-e89b-12d3-a456-426614174000';
       const dbLocation = {
-        driverId,
+        id: '123e4567-e89b-12d3-a456-426614174001',
+        driver_id: driverId,
         latitude: 37.7749,
         longitude: -122.4194,
         heading: 90,
         speed: 30,
-        timestamp: '2025-09-13T10:30:00Z',
+        timestamp: new Date('2025-09-13T10:30:00Z'),
       };
 
       mockLocationProcessingService.getDriverLocation.mockReturnValue(null);
@@ -167,7 +170,7 @@ describe('TrackingService', () => {
     it('should return order tracking information', async () => {
       const orderId = '123e4567-e89b-12d3-a456-426614174000';
       const driverId = '123e4567-e89b-12d3-a456-426614174001';
-      
+
       const delivery = {
         id: '123e4567-e89b-12d3-a456-426614174002',
         order_id: orderId,
@@ -181,11 +184,11 @@ describe('TrackingService', () => {
         estimated_delivery_time: '2025-09-13T10:30:00Z',
         completed_at: null,
       };
-      
+
       const driverLocation = {
         driverId,
-        latitude: 37.7800,
-        longitude: -122.4180,
+        latitude: 37.78,
+        longitude: -122.418,
         heading: 45,
         speed: 20,
         timestamp: '2025-09-13T10:15:00Z',
@@ -216,7 +219,7 @@ describe('TrackingService', () => {
           latitude: driverLocation.latitude,
           longitude: driverLocation.longitude,
           heading: driverLocation.heading,
-          updatedAt: driverLocation.timestamp,
+          updatedAt: new Date(driverLocation.timestamp),
         },
         startedAt: delivery.started_at,
         estimatedDeliveryTime: delivery.estimated_delivery_time,

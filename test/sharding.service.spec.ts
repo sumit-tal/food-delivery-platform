@@ -76,18 +76,18 @@ describe('When using ShardingService', () => {
       mockConfigService.get.mockReturnValue(16);
       const orderIds = Array.from({ length: 1000 }, () => {
         const uuid = Array.from({ length: 32 }, () =>
-          Math.floor(Math.random() * 16).toString(16)
+          Math.floor(Math.random() * 16).toString(16),
         ).join('');
         return `${uuid.slice(0, 8)}-${uuid.slice(8, 12)}-${uuid.slice(12, 16)}-${uuid.slice(
           16,
-          20
+          20,
         )}-${uuid.slice(20)}`;
       });
 
       // Act
-      const shardKeys = orderIds.map(id => service.calculateShardKey(id));
+      const shardKeys = orderIds.map((id) => service.calculateShardKey(id));
       const distribution = new Map<number, number>();
-      shardKeys.forEach(key => {
+      shardKeys.forEach((key) => {
         distribution.set(key, (distribution.get(key) || 0) + 1);
       });
 
@@ -111,9 +111,7 @@ describe('When using ShardingService', () => {
       const { orderId, shardKey } = service.generateOrderId();
 
       // Assert
-      expect(orderId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-      );
+      expect(orderId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
       expect(shardKey).toBeGreaterThanOrEqual(0);
       expect(shardKey).toBeLessThan(16);
     });
@@ -127,9 +125,7 @@ describe('When using ShardingService', () => {
       const { orderId, shardKey } = service.generateOrderId(targetShardKey);
 
       // Assert
-      expect(orderId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-      );
+      expect(orderId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
       expect(shardKey).toBe(targetShardKey);
     });
 

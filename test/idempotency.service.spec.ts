@@ -1,6 +1,6 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 import { IdempotencyService } from '../src/modules/orders/services/idempotency.service';
 import { OrderTransactionEntity } from '../src/modules/orders/entities/order-transaction.entity';
 import { TransactionService } from '../src/modules/orders/services/transaction.service';
@@ -9,6 +9,13 @@ describe('When using IdempotencyService', () => {
   let service: IdempotencyService;
   let transactionRepository: Repository<OrderTransactionEntity>;
   let transactionService: TransactionService;
+  type UpdateQueryBuilder = {
+    update: jest.Mock<UpdateQueryBuilder, [unknown]>;
+    set: jest.Mock<UpdateQueryBuilder, [Record<string, unknown>]>;
+    where: jest.Mock<UpdateQueryBuilder, [string, Record<string, unknown>]>;
+    execute: jest.Mock<Promise<{ affected: number }>, []>;
+  };
+  let qb: UpdateQueryBuilder;
 
   const mockTransactionRepository = {
     findOne: jest.fn(),
@@ -16,6 +23,7 @@ describe('When using IdempotencyService', () => {
     save: jest.fn(),
     update: jest.fn(),
     increment: jest.fn(),
+    createQueryBuilder: jest.fn(),
   };
 
   const mockTransactionService = {
@@ -23,6 +31,18 @@ describe('When using IdempotencyService', () => {
   };
 
   beforeEach(async () => {
+    // Setup a default mock query builder chain for tests that complete transactions with a responsePayload
+    const update = jest.fn<UpdateQueryBuilder, [unknown]>();
+    const set = jest.fn<UpdateQueryBuilder, [Record<string, unknown>]>();
+    const where = jest.fn<UpdateQueryBuilder, [string, Record<string, unknown>]>();
+    const execute = jest.fn<Promise<{ affected: number }>, []>();
+    qb = { update, set, where, execute } as UpdateQueryBuilder;
+    update.mockReturnValue(qb);
+    set.mockReturnValue(qb);
+    where.mockReturnValue(qb);
+    execute.mockResolvedValue({ affected: 1 });
+    mockTransactionRepository.createQueryBuilder.mockReturnValue(qb);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         IdempotencyService,
@@ -125,7 +145,6 @@ describe('When using IdempotencyService', () => {
 
     it('Then should update the transaction status to completed', async () => {
       // Arrange
-      mockTransactionRepository.update.mockResolvedValue({ affected: 1 });
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
 
       // Act
@@ -133,14 +152,20 @@ describe('When using IdempotencyService', () => {
 
       // Assert
       expect(result).toEqual(mockTransaction);
-      expect(mockTransactionRepository.update).toHaveBeenCalledWith(
-        { id: transactionId },
+      expect(mockTransactionRepository.createQueryBuilder).toHaveBeenCalled();
+      expect(qb.update).toHaveBeenCalledWith(OrderTransactionEntity);
+      expect(qb.set).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'completed',
           orderId,
-          responsePayload,
+          updatedAt: expect.any(Date),
         }),
       );
+      expect(qb.where).toHaveBeenCalledWith('id = :id', {
+        id: transactionId,
+        responsePayload,
+      });
+      expect(qb.execute).toHaveBeenCalled();
     });
   });
 
@@ -164,7 +189,7 @@ describe('When using IdempotencyService', () => {
         status: 'pending',
         requestPayload,
       });
-      mockTransactionRepository.update.mockResolvedValue({ affected: 1 });
+      const scopedQb = mockTransactionRepository.createQueryBuilder();
 
       // Act
       const result = await service.executeWithIdempotency(transactionId, requestPayload, operation);
@@ -172,13 +197,20 @@ describe('When using IdempotencyService', () => {
       // Assert
       expect(result).toEqual(mockResult);
       expect(operation).toHaveBeenCalled();
-      expect(mockTransactionRepository.update).toHaveBeenCalledWith(
-        { id: transactionId },
+      expect(mockTransactionRepository.createQueryBuilder).toHaveBeenCalled();
+      expect(scopedQb.update).toHaveBeenCalledWith(OrderTransactionEntity);
+      expect(scopedQb.set).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'completed',
           orderId,
+          updatedAt: expect.any(Date),
         }),
       );
+      expect(scopedQb.where).toHaveBeenCalledWith(
+        'id = :id',
+        expect.objectContaining({ id: transactionId }),
+      );
+      expect(scopedQb.execute).toHaveBeenCalled();
     });
 
     it('Then should return existing result for completed transaction', async () => {

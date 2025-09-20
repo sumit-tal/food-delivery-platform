@@ -1,7 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 import { PaymentsService } from '../src/modules/payments/payments.service';
 import { PaymentEntity } from '../src/modules/payments/entities/payment.entity';
 import { PaymentFailureQueueEntity } from '../src/modules/payments/entities/payment-failure-queue.entity';
@@ -10,8 +10,12 @@ import { PaymentRetryService } from '../src/modules/payments/services/payment-re
 import { PaymentCacheService } from '../src/modules/payments/services/payment-cache.service';
 import { IdempotencyService } from '../src/modules/orders/services/idempotency.service';
 import { OrdersService } from '../src/modules/orders/orders.service';
-import { PaymentGateway, PaymentStatus } from '../src/modules/payments/interfaces/payment-gateway.interface';
+import {
+  type PaymentGateway,
+  PaymentStatus,
+} from '../src/modules/payments/interfaces/payment-gateway.interface';
 import { MockPaymentGateway } from '../src/modules/payments/gateways/mock-payment.gateway';
+import type { TestingModule } from '@nestjs/testing';
 
 // Mock repositories
 const mockPaymentRepository = () => ({
@@ -19,29 +23,29 @@ const mockPaymentRepository = () => ({
   save: jest.fn(),
   findOne: jest.fn(),
   find: jest.fn(),
-  update: jest.fn()
+  update: jest.fn(),
 });
 
 // Mock services
 const mockCircuitBreakerService = () => ({
-  executeWithCircuitBreaker: jest.fn((circuitId, operation) => operation())
+  executeWithCircuitBreaker: jest.fn((circuitId, operation) => operation()),
 });
 
 const mockPaymentRetryService = () => ({
-  addToRetryQueue: jest.fn()
+  addToRetryQueue: jest.fn(),
 });
 
 const mockPaymentCacheService = () => ({
   get: jest.fn(),
-  set: jest.fn()
+  set: jest.fn(),
 });
 
 const mockIdempotencyService = () => ({
-  executeWithIdempotency: jest.fn((key, payload, operation) => operation())
+  executeWithIdempotency: jest.fn((key, payload, operation) => operation()),
 });
 
 const mockOrdersService = () => ({
-  getOrderById: jest.fn()
+  getOrderById: jest.fn(),
 });
 
 describe('PaymentsService', () => {
@@ -57,35 +61,35 @@ describe('PaymentsService', () => {
         PaymentsService,
         {
           provide: getRepositoryToken(PaymentEntity),
-          useFactory: mockPaymentRepository
+          useFactory: mockPaymentRepository,
         },
         {
           provide: getRepositoryToken(PaymentFailureQueueEntity),
-          useFactory: mockPaymentRepository
+          useFactory: mockPaymentRepository,
         },
         {
           provide: 'PaymentGateway',
-          useClass: MockPaymentGateway
+          useClass: MockPaymentGateway,
         },
         {
           provide: CircuitBreakerService,
-          useFactory: mockCircuitBreakerService
+          useFactory: mockCircuitBreakerService,
         },
         {
           provide: PaymentRetryService,
-          useFactory: mockPaymentRetryService
+          useFactory: mockPaymentRetryService,
         },
         {
           provide: PaymentCacheService,
-          useFactory: mockPaymentCacheService
+          useFactory: mockPaymentCacheService,
         },
         {
           provide: IdempotencyService,
-          useFactory: mockIdempotencyService
+          useFactory: mockIdempotencyService,
         },
         {
           provide: OrdersService,
-          useFactory: mockOrdersService
+          useFactory: mockOrdersService,
         },
         {
           provide: ConfigService,
@@ -93,10 +97,10 @@ describe('PaymentsService', () => {
             get: jest.fn((key) => {
               if (key === 'PAYMENT_CACHE_TTL_MS') return 1800000; // 30 minutes
               return null;
-            })
-          }
-        }
-      ]
+            }),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<PaymentsService>(PaymentsService);
@@ -121,12 +125,12 @@ describe('PaymentsService', () => {
         success: true,
         paymentId: 'payment-123',
         status: PaymentStatus.CAPTURED,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
       jest.spyOn(paymentGateway, 'authorizePayment').mockResolvedValue(mockPaymentResult);
       jest.spyOn(paymentGateway, 'capturePayment').mockResolvedValue({
         ...mockPaymentResult,
-        status: PaymentStatus.CAPTURED
+        status: PaymentStatus.CAPTURED,
       });
 
       // Mock repository
@@ -134,7 +138,7 @@ describe('PaymentsService', () => {
         id: 'db-payment-123',
         orderId: 'order-123',
         gatewayPaymentId: 'payment-123',
-        status: PaymentStatus.CAPTURED
+        status: PaymentStatus.CAPTURED,
       };
       (paymentRepository.create as jest.Mock).mockReturnValue(mockPaymentEntity);
       (paymentRepository.save as jest.Mock).mockResolvedValue(mockPaymentEntity);
@@ -147,7 +151,7 @@ describe('PaymentsService', () => {
         'USD',
         { type: 'credit_card', cardNumber: '4111111111111111', expiryMonth: 12, expiryYear: 2025 },
         'customer-123',
-        'customer@example.com'
+        'customer@example.com',
       );
 
       // Verify results
@@ -171,7 +175,7 @@ describe('PaymentsService', () => {
         status: PaymentStatus.FAILED,
         errorCode: 'card_declined',
         errorMessage: 'Card was declined',
-        timestamp: new Date()
+        timestamp: new Date(),
       };
       jest.spyOn(paymentGateway, 'authorizePayment').mockResolvedValue(mockFailedPaymentResult);
 
@@ -182,7 +186,7 @@ describe('PaymentsService', () => {
         gatewayPaymentId: 'payment-123',
         status: PaymentStatus.FAILED,
         errorCode: 'card_declined',
-        errorMessage: 'Card was declined'
+        errorMessage: 'Card was declined',
       };
       (paymentRepository.create as jest.Mock).mockReturnValue(mockPaymentEntity);
       (paymentRepository.save as jest.Mock).mockResolvedValue(mockPaymentEntity);
@@ -195,7 +199,7 @@ describe('PaymentsService', () => {
         'USD',
         { type: 'credit_card', cardNumber: '4111111111111111', expiryMonth: 12, expiryYear: 2025 },
         'customer-123',
-        'customer@example.com'
+        'customer@example.com',
       );
 
       // Verify results
@@ -211,9 +215,12 @@ describe('PaymentsService', () => {
         id: 'cached-payment-123',
         success: true,
         status: PaymentStatus.CAPTURED,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
       (paymentCacheService.get as jest.Mock).mockReturnValue(cachedResult);
+
+      // Spy on authorizePayment to ensure it is not called when cache hits
+      const authorizeSpy = jest.spyOn(paymentGateway, 'authorizePayment');
 
       // Execute payment
       const result = await service.processPayment(
@@ -222,13 +229,13 @@ describe('PaymentsService', () => {
         'USD',
         { type: 'credit_card', cardNumber: '4111111111111111', expiryMonth: 12, expiryYear: 2025 },
         'customer-123',
-        'customer@example.com'
+        'customer@example.com',
       );
 
       // Verify results
       expect(result).toBe(cachedResult);
       expect(paymentCacheService.get).toHaveBeenCalled();
-      expect(paymentGateway.authorizePayment).not.toHaveBeenCalled();
+      expect(authorizeSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -241,7 +248,7 @@ describe('PaymentsService', () => {
         gatewayPaymentId: 'gateway-payment-123',
         status: PaymentStatus.CAPTURED,
         amount: 1000,
-        currency: 'USD'
+        currency: 'USD',
       };
       (paymentRepository.findOne as jest.Mock).mockResolvedValue(mockPaymentEntity);
 
@@ -250,7 +257,7 @@ describe('PaymentsService', () => {
         success: true,
         paymentId: 'gateway-payment-123',
         status: PaymentStatus.REFUNDED,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
       jest.spyOn(paymentGateway, 'refundPayment').mockResolvedValue(mockRefundResult);
 

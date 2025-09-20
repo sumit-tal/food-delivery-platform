@@ -63,18 +63,30 @@ describe('Driver Simulator', () => {
 
     // Mock the methods that interact with external systems
     jest.spyOn(driverSimulatorService, 'sendLocationUpdates').mockImplementation(() => {});
-    jest.spyOn(visualizationService, 'generateVisualization').mockResolvedValue('/path/to/visualization.html');
+    jest
+      .spyOn(visualizationService, 'generateVisualization')
+      .mockResolvedValue('/path/to/visualization.html');
     jest.spyOn(visualizationService, 'generateGeoJson').mockResolvedValue('/path/to/data.geojson');
+
+    // Ensure drivers are initialized for tests that require existing drivers
+    driverSimulatorService.initialize(mockConfig);
+  });
+
+  afterEach(() => {
+    // Ensure any running intervals are cleared between tests
+    simulatorService.stopSimulation();
+    // Always restore real timers in case a test enabled fake timers and failed early
+    jest.useRealTimers();
   });
 
   describe('When initializing the simulator', () => {
     it('Then should create the specified number of drivers', () => {
       // Arrange
       const config = { ...mockConfig, driverCount: 10 };
-      
+
       // Act
       simulatorService.updateConfig(config);
-      
+
       // Assert
       expect(driverSimulatorService.getActiveDriverCount()).toBe(10);
     });
@@ -82,20 +94,20 @@ describe('Driver Simulator', () => {
     it('Then should use the specified initial region', () => {
       // Arrange
       const spy = jest.spyOn(movementPatternService, 'getRandomPositionInRegion');
-      const config = { 
-        ...mockConfig, 
+      const config = {
+        ...mockConfig,
         initialRegion: {
           centerLat: 40.7128,
-          centerLng: -74.0060,
-          radiusKm: 5
-        } 
+          centerLng: -74.006,
+          radiusKm: 5,
+        },
       };
-      
+
       // Act
       driverSimulatorService.initialize(config);
-      
+
       // Assert
-      expect(spy).toHaveBeenCalledWith(40.7128, -74.0060, 5);
+      expect(spy).toHaveBeenCalledWith(40.7128, -74.006, 5);
     });
   });
 
@@ -104,14 +116,14 @@ describe('Driver Simulator', () => {
       // Arrange
       jest.useFakeTimers();
       const spy = jest.spyOn(driverSimulatorService, 'updateDriverLocations');
-      
+
       // Act
       await simulatorService.startSimulation();
       jest.advanceTimersByTime(3500); // Advance by 3.5 seconds
-      
+
       // Assert
       expect(spy).toHaveBeenCalledTimes(3); // Called 3 times with 1000ms interval
-      
+
       // Cleanup
       jest.useRealTimers();
     });
@@ -120,10 +132,10 @@ describe('Driver Simulator', () => {
       // Arrange
       const spy = jest.spyOn(simulatorService, 'startSimulation');
       await simulatorService.startSimulation();
-      
+
       // Act
       await simulatorService.startSimulation();
-      
+
       // Assert
       expect(spy).toHaveBeenCalledTimes(2);
       expect(spy.mock.results[1].value).toBeUndefined(); // Second call returns early
@@ -134,10 +146,10 @@ describe('Driver Simulator', () => {
     it('Then should update positions of all drivers', () => {
       // Arrange
       const spy = jest.spyOn(movementPatternService, 'updateDriverPosition');
-      
+
       // Act
       driverSimulatorService.updateDriverLocations();
-      
+
       // Assert
       expect(spy).toHaveBeenCalledTimes(mockConfig.driverCount);
     });
@@ -149,20 +161,20 @@ describe('Driver Simulator', () => {
       const drivers = driverSimulatorService.getAllDrivers();
       const driver = drivers[0];
       const spy = jest.spyOn(movementPatternService, 'generateRoute');
-      
+
       // Act
       driverSimulatorService.setDriverDestination(
         driver.id,
         driver.latitude + 0.01,
-        driver.longitude + 0.01
+        driver.longitude + 0.01,
       );
-      
+
       // Assert
       expect(spy).toHaveBeenCalledWith(
         driver.latitude,
         driver.longitude,
         driver.latitude + 0.01,
-        driver.longitude + 0.01
+        driver.longitude + 0.01,
       );
     });
   });
