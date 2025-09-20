@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -26,6 +26,7 @@ export class NotificationService {
   constructor(
     @InjectRepository(NotificationEntity)
     private readonly notificationRepository: Repository<NotificationEntity>,
+    @Inject(forwardRef(() => NotificationQueueService))
     private readonly notificationQueueService: NotificationQueueService,
     private readonly notificationPreferenceService: NotificationPreferenceService,
     private readonly emailNotificationService: EmailNotificationService,

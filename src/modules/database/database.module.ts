@@ -6,6 +6,16 @@ import { ReadReplicaService } from '../../common/services/read-replica.service';
 import { QueryPerformanceService } from '../../common/services/query-performance.service';
 import { IndexOptimizationService } from '../../common/services/index-optimization.service';
 import { PERFORMANCE_CONSTANTS } from '../../common/constants/performance.constants';
+import { randomUUID } from 'crypto';
+
+// Polyfill for crypto.randomUUID() for Node.js compatibility
+if (!globalThis.crypto?.randomUUID) {
+  if (!globalThis.crypto) {
+    (globalThis as any).crypto = { randomUUID };
+  } else {
+    (globalThis.crypto as any).randomUUID = randomUUID;
+  }
+}
 
 /**
  * Create TypeORM options with optimized settings
@@ -16,37 +26,34 @@ function createTypeOrmOptions(configService: ConfigService): TypeOrmModuleOption
   const dbHost = configService.get<string>('DB_HOST', 'localhost');
   const dbPort = configService.get<number>('DB_PORT', 5432);
   const dbUsername = configService.get<string>('DB_USERNAME', 'postgres');
-  const dbPassword = configService.get<string>('DB_PASSWORD', 'postgres');
+  const dbPassword = configService.get<string>('DB_PASSWORD', 'password');
   const dbName = configService.get<string>('DB_DATABASE', 'swifteats');
   const dbSync = configService.get<boolean>('DB_SYNCHRONIZE', false);
   const dbLogging = configService.get<boolean>('DB_LOGGING', false);
-  
+
   // Get optimized pool settings from constants or environment
-  const poolSize = configService.get<number>(
-    'DB_POOL_SIZE', 
-    PERFORMANCE_CONSTANTS.DB_POOL_SIZE
-  );
+  const poolSize = configService.get<number>('DB_POOL_SIZE', PERFORMANCE_CONSTANTS.DB_POOL_SIZE);
   const poolMinSize = configService.get<number>(
-    'DB_POOL_MIN_SIZE', 
-    PERFORMANCE_CONSTANTS.DB_POOL_MIN_SIZE
+    'DB_POOL_MIN_SIZE',
+    PERFORMANCE_CONSTANTS.DB_POOL_MIN_SIZE,
   );
   const idleTimeout = configService.get<number>(
-    'DB_IDLE_TIMEOUT', 
-    PERFORMANCE_CONSTANTS.DB_IDLE_TIMEOUT
+    'DB_IDLE_TIMEOUT',
+    PERFORMANCE_CONSTANTS.DB_IDLE_TIMEOUT,
   );
   const connectionTimeout = configService.get<number>(
-    'DB_CONNECTION_TIMEOUT', 
-    PERFORMANCE_CONSTANTS.DB_CONNECTION_TIMEOUT
+    'DB_CONNECTION_TIMEOUT',
+    PERFORMANCE_CONSTANTS.DB_CONNECTION_TIMEOUT,
   );
   const statementTimeout = configService.get<number>(
-    'DB_STATEMENT_TIMEOUT', 
-    PERFORMANCE_CONSTANTS.DB_STATEMENT_TIMEOUT
+    'DB_STATEMENT_TIMEOUT',
+    PERFORMANCE_CONSTANTS.DB_STATEMENT_TIMEOUT,
   );
   const connectTimeout = configService.get<number>(
-    'DB_CONNECT_TIMEOUT', 
-    PERFORMANCE_CONSTANTS.DB_CONNECT_TIMEOUT
+    'DB_CONNECT_TIMEOUT',
+    PERFORMANCE_CONSTANTS.DB_CONNECT_TIMEOUT,
   );
-  
+
   return {
     type: 'postgres',
     host: dbHost,

@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AlertManagerService } from './alert-manager.service';
+import { getBoolean } from '../../../common/utils/config.utils';
 
 /**
  * AlertSeverity enum defines the available alert severity levels.
@@ -40,7 +41,7 @@ export class AlertingService implements OnModuleInit {
     private readonly configService: ConfigService,
     private readonly alertManagerService: AlertManagerService,
   ) {
-    this.enabled = this.configService.get<boolean>('ALERTING_ENABLED', false);
+    this.enabled = getBoolean(this.configService, 'ALERTING_ENABLED', false);
     this.serviceName = this.configService.get<string>('SERVICE_NAME', 'swifteats-backend');
     this.environment = this.configService.get<string>('NODE_ENV', 'development');
   }
@@ -159,14 +160,7 @@ export class AlertingService implements OnModuleInit {
     labels: Record<string, string> = {},
     annotations: Record<string, string> = {},
   ): Alert {
-    return this.createAlert(
-      name,
-      summary,
-      description,
-      AlertSeverity.ERROR,
-      labels,
-      annotations,
-    );
+    return this.createAlert(name, summary, description, AlertSeverity.ERROR, labels, annotations);
   }
 
   /**
@@ -185,14 +179,7 @@ export class AlertingService implements OnModuleInit {
     labels: Record<string, string> = {},
     annotations: Record<string, string> = {},
   ): Alert {
-    return this.createAlert(
-      name,
-      summary,
-      description,
-      AlertSeverity.WARNING,
-      labels,
-      annotations,
-    );
+    return this.createAlert(name, summary, description, AlertSeverity.WARNING, labels, annotations);
   }
 
   /**
@@ -211,13 +198,6 @@ export class AlertingService implements OnModuleInit {
     labels: Record<string, string> = {},
     annotations: Record<string, string> = {},
   ): Alert {
-    return this.createAlert(
-      name,
-      summary,
-      description,
-      AlertSeverity.INFO,
-      labels,
-      annotations,
-    );
+    return this.createAlert(name, summary, description, AlertSeverity.INFO, labels, annotations);
   }
 }

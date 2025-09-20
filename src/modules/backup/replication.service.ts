@@ -64,17 +64,25 @@ export class ReplicationService {
   private loadReplicationConfiguration(): ReplicationConfiguration {
     return {
       enabled: this.configService.get<boolean>('REPLICATION_ENABLED', true),
-      replicationMode: this.configService.get<'streaming' | 'logical' | 'physical'>('REPLICATION_MODE', 'streaming'),
+      replicationMode: this.configService.get<'streaming' | 'logical' | 'physical'>(
+        'REPLICATION_MODE',
+        'streaming',
+      ),
       primaryHost: this.configService.get<string>('DB_HOST', 'localhost'),
       primaryPort: this.configService.get<number>('DB_PORT', 5432),
       replicaHosts: this.configService.get<string>('REPLICA_HOSTS', '').split(',').filter(Boolean),
       replicationUser: this.configService.get<string>('REPLICATION_USER', 'replicator'),
-      replicationSlots: this.configService.get<string>('REPLICATION_SLOTS', 'replica_slot_1,replica_slot_2').split(','),
+      replicationSlots: this.configService
+        .get<string>('REPLICATION_SLOTS', 'replica_slot_1,replica_slot_2')
+        .split(','),
       synchronousCommit: this.configService.get<boolean>('SYNCHRONOUS_COMMIT', false),
       maxWalSenders: this.configService.get<number>('MAX_WAL_SENDERS', 10),
       walKeepSegments: this.configService.get<number>('WAL_KEEP_SEGMENTS', 32),
       archiveMode: this.configService.get<boolean>('ARCHIVE_MODE', true),
-      archiveCommand: this.configService.get<string>('ARCHIVE_COMMAND', 'cp %p /var/lib/postgresql/archive/%f'),
+      archiveCommand: this.configService.get<string>(
+        'ARCHIVE_COMMAND',
+        'cp %p /var/lib/postgresql/archive/%f',
+      ),
     };
   }
 
@@ -124,12 +132,12 @@ export class ReplicationService {
 
       // Check for unhealthy replicas
       const unhealthyReplicas = replicationStatus.filter(
-        replica => replica.state === 'error' || replica.lagTime > 300 // 5 minutes
+        (replica) => replica.state === 'error' || replica.lagTime > 300, // 5 minutes
       );
 
       if (unhealthyReplicas.length > 0) {
         this.logger.warn(`Found ${unhealthyReplicas.length} unhealthy replicas`, {
-          unhealthyReplicas: unhealthyReplicas.map(r => ({
+          unhealthyReplicas: unhealthyReplicas.map((r) => ({
             host: r.replicaHost,
             state: r.state,
             lagTime: r.lagTime,
@@ -144,7 +152,6 @@ export class ReplicationService {
 
       // Log metrics
       this.logger.debug('Replication metrics', metrics);
-
     } catch (error) {
       this.logger.error('Replication monitoring failed', error);
     }
@@ -156,7 +163,7 @@ export class ReplicationService {
   async getReplicationStatus(): Promise<ReplicationStatus[]> {
     try {
       const query = `
-        SELECT 
+        SELECT
           client_addr as replica_host,
           state,
           pg_wal_lsn_diff(pg_current_wal_lsn(), flush_lsn) as lag_bytes,
@@ -179,7 +186,6 @@ export class ReplicationService {
         flushLocation: row.flush_location,
         replayLocation: row.replay_location,
       }));
-
     } catch (error) {
       this.logger.error('Failed to get replication status', error);
       return [];
@@ -196,11 +202,11 @@ export class ReplicationService {
       const walGenerationRate = await this.getWalGenerationRate();
 
       const healthyReplicas = replicationStatus.filter(
-        replica => replica.state === 'streaming' && replica.lagTime < 300
+        (replica) => replica.state === 'streaming' && replica.lagTime < 300,
       );
 
-      const lagTimes = replicationStatus.map(r => r.lagTime);
-      const lagBytes = replicationStatus.map(r => r.lagBytes);
+      const lagTimes = replicationStatus.map((r) => r.lagTime);
+      const lagBytes = replicationStatus.map((r) => r.lagBytes);
 
       return {
         totalReplicas: replicationStatus.length,
@@ -211,7 +217,6 @@ export class ReplicationService {
         replicationSlotUsage: slotUsage,
         walGenerationRate: walGenerationRate,
       };
-
     } catch (error) {
       this.logger.error('Failed to get replication metrics', error);
       throw error;
@@ -239,7 +244,6 @@ export class ReplicationService {
       await this.startReplica(replicaHost);
 
       this.logger.log(`Replica created successfully: ${replicaHost}:${replicaPort}`);
-
     } catch (error) {
       this.logger.error(`Failed to create replica: ${replicaHost}:${replicaPort}`, error);
       throw error;
@@ -261,7 +265,6 @@ export class ReplicationService {
       await this.dropReplicationSlot(slotName);
 
       this.logger.log(`Replica removed successfully: ${replicaHost}`);
-
     } catch (error) {
       this.logger.error(`Failed to remove replica: ${replicaHost}`, error);
       throw error;
@@ -285,7 +288,6 @@ export class ReplicationService {
       await this.updatePrimaryConfiguration(replicaHost);
 
       this.logger.log(`Replica promoted successfully: ${replicaHost}`);
-
     } catch (error) {
       this.logger.error(`Failed to promote replica: ${replicaHost}`, error);
       throw error;
@@ -319,10 +321,7 @@ export class ReplicationService {
 
   private async createReplicationSlot(slotName: string): Promise<void> {
     try {
-      await this.dataSource.query(
-        `SELECT pg_create_physical_replication_slot($1)`,
-        [slotName]
-      );
+      await this.dataSource.query(`SELECT pg_create_physical_replication_slot($1)`, [slotName]);
       this.logger.log(`Created replication slot: ${slotName}`);
     } catch (error) {
       if (error instanceof Error && error.message.includes('already exists')) {
@@ -335,10 +334,7 @@ export class ReplicationService {
 
   private async dropReplicationSlot(slotName: string): Promise<void> {
     try {
-      await this.dataSource.query(
-        `SELECT pg_drop_replication_slot($1)`,
-        [slotName]
-      );
+      await this.dataSource.query(`SELECT pg_drop_replication_slot($1)`, [slotName]);
       this.logger.log(`Dropped replication slot: ${slotName}`);
     } catch (error) {
       this.logger.error(`Failed to drop replication slot: ${slotName}`, error);
@@ -349,7 +345,10 @@ export class ReplicationService {
   private async createReplicationUser(): Promise<void> {
     try {
       const replicationUser = this.replicationConfig.replicationUser;
-      const password = this.configService.get<string>('REPLICATION_PASSWORD', 'replication_password');
+      const password = this.configService.get<string>(
+        'REPLICATION_PASSWORD',
+        'replication_password',
+      );
 
       await this.dataSource.query(`
         DO $$
@@ -374,17 +373,21 @@ export class ReplicationService {
     }
 
     this.logger.log('Configuring WAL archiving');
-    
+
     // Create archive directory
     try {
       await execAsync('mkdir -p /var/lib/postgresql/archive');
-      await execAsync('chown postgres:postgres /var/lib/postgresql/archive');
+      await execAsync('chown postgres:password /var/lib/postgresql/archive');
     } catch (error) {
       this.logger.error('Failed to create archive directory', error);
     }
   }
 
-  private async takeBaseBackup(replicaHost: string, replicaPort: number, slotName: string): Promise<void> {
+  private async takeBaseBackup(
+    replicaHost: string,
+    replicaPort: number,
+    slotName: string,
+  ): Promise<void> {
     this.logger.log(`Taking base backup for replica: ${replicaHost}`);
 
     const backupCommand = `
@@ -406,7 +409,11 @@ export class ReplicationService {
     }
   }
 
-  private async configureReplica(replicaHost: string, replicaPort: number, slotName: string): Promise<void> {
+  private async configureReplica(
+    replicaHost: string,
+    replicaPort: number,
+    slotName: string,
+  ): Promise<void> {
     this.logger.log(`Configuring replica: ${replicaHost}`);
 
     const recoveryConf = `
@@ -422,7 +429,7 @@ export class ReplicationService {
 
   private async startReplica(replicaHost: string): Promise<void> {
     this.logger.log(`Starting replica: ${replicaHost}`);
-    
+
     // In a real implementation, this would start PostgreSQL on the replica server
     // This could involve SSH commands or orchestration tools
     this.logger.log(`Replica started: ${replicaHost}`);
@@ -430,29 +437,29 @@ export class ReplicationService {
 
   private async stopReplica(replicaHost: string): Promise<void> {
     this.logger.log(`Stopping replica: ${replicaHost}`);
-    
+
     // In a real implementation, this would stop PostgreSQL on the replica server
     this.logger.log(`Replica stopped: ${replicaHost}`);
   }
 
   private async restartReplica(replicaHost: string): Promise<void> {
     this.logger.log(`Restarting replica: ${replicaHost}`);
-    
+
     await this.stopReplica(replicaHost);
-    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+    await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
     await this.startReplica(replicaHost);
   }
 
   private async stopReplication(replicaHost: string): Promise<void> {
     this.logger.log(`Stopping replication on: ${replicaHost}`);
-    
+
     // In a real implementation, this would stop replication on the replica
     this.logger.log(`Replication stopped on: ${replicaHost}`);
   }
 
   private async executeReplicaPromotion(replicaHost: string): Promise<void> {
     this.logger.log(`Executing promotion on: ${replicaHost}`);
-    
+
     // In a real implementation, this would promote the replica to primary
     // This could involve creating a trigger file or using pg_promote()
     this.logger.log(`Promotion executed on: ${replicaHost}`);
@@ -460,7 +467,7 @@ export class ReplicationService {
 
   private async updatePrimaryConfiguration(newPrimaryHost: string): Promise<void> {
     this.logger.log(`Updating configuration for new primary: ${newPrimaryHost}`);
-    
+
     // In a real implementation, this would update application configuration
     // to point to the new primary database
     this.logger.log(`Configuration updated for: ${newPrimaryHost}`);
@@ -473,7 +480,7 @@ export class ReplicationService {
         FROM pg_replication_slots
         WHERE active = true
       `);
-      
+
       return parseInt(result[0]?.used_slots) || 0;
     } catch (error) {
       this.logger.error('Failed to get replication slot usage', error);
@@ -488,7 +495,7 @@ export class ReplicationService {
       const result = await this.dataSource.query(`
         SELECT pg_current_wal_lsn() as current_lsn
       `);
-      
+
       // Return a placeholder value
       return 1024; // KB/s
     } catch (error) {

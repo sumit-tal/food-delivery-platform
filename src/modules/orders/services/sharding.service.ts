@@ -25,7 +25,7 @@ export class ShardingService {
     // Extract the first 8 characters of the UUID and convert to a number
     const hexSubstring = orderId.replace(/-/g, '').substring(0, 8);
     const numericValue = parseInt(hexSubstring, 16);
-    
+
     // Modulo to get a value between 0 and shardCount - 1
     return numericValue % this.shardCount;
   }
@@ -45,25 +45,29 @@ export class ShardingService {
 
     // Ensure the target shard key is valid
     if (targetShardKey < 0 || targetShardKey >= this.shardCount) {
-      throw new Error(`Invalid shard key: ${targetShardKey}. Must be between 0 and ${this.shardCount - 1}`);
+      throw new Error(
+        `Invalid shard key: ${targetShardKey}. Must be between 0 and ${this.shardCount - 1}`,
+      );
     }
 
     // Generate UUIDs until we find one that maps to the target shard key
     let attempts = 0;
     const maxAttempts = 1000; // Prevent infinite loop
-    
+
     while (attempts < maxAttempts) {
       const orderId = uuidv4();
       const shardKey = this.calculateShardKey(orderId);
-      
+
       if (shardKey === targetShardKey) {
         return { orderId, shardKey };
       }
-      
+
       attempts++;
     }
-    
-    throw new Error(`Failed to generate order ID with shard key ${targetShardKey} after ${maxAttempts} attempts`);
+
+    throw new Error(
+      `Failed to generate order ID with shard key ${targetShardKey} after ${maxAttempts} attempts`,
+    );
   }
 
   /**
@@ -74,15 +78,17 @@ export class ShardingService {
   getShardConnectionString(shardKey: number): string {
     // Ensure the shard key is valid
     if (shardKey < 0 || shardKey >= this.shardCount) {
-      throw new Error(`Invalid shard key: ${shardKey}. Must be between 0 and ${this.shardCount - 1}`);
+      throw new Error(
+        `Invalid shard key: ${shardKey}. Must be between 0 and ${this.shardCount - 1}`,
+      );
     }
-    
+
     // Get the base connection string from the configuration
     const baseConnectionString = this.configService.get<string>(
-      'DB_CONNECTION_STRING', 
-      'postgresql://postgres:postgres@localhost:5432/swifteats'
+      'DB_CONNECTION_STRING',
+      'postgresql://postgres:password@localhost:5432/swifteats',
     );
-    
+
     // For a real implementation, you would have different connection strings for each shard
     // For now, we'll just append the shard key to the database name
     return `${baseConnectionString}_shard_${shardKey}`;

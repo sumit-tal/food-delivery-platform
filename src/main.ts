@@ -1,5 +1,15 @@
 import 'reflect-metadata';
+import { config } from 'dotenv';
 import { NestFactory } from '@nestjs/core';
+
+// Load environment variables before anything else
+config();
+
+// Debug: Log critical environment variables
+console.log('Environment variables loaded:');
+console.log('ELASTICSEARCH_ENABLED:', process.env.ELASTICSEARCH_ENABLED);
+console.log('ALERTING_ENABLED:', process.env.ALERTING_ENABLED);
+console.log('POSTGIS_REQUIRED:', process.env.POSTGIS_REQUIRED);
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import * as fs from 'fs';

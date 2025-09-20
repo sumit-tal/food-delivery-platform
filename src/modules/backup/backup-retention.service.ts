@@ -64,11 +64,11 @@ export class BackupRetentionService {
     this.retentionConfig = this.loadRetentionConfiguration();
     this.backupDirectory = this.configService.get<string>(
       'BACKUP_DIRECTORY',
-      '/var/backups/swifteats',
+      './backups/swifteats',
     );
     this.archiveDirectory = this.configService.get<string>(
       'ARCHIVE_DIRECTORY',
-      '/var/archives/swifteats',
+      './archives/swifteats',
     );
     void this.initializeDirectories();
   }

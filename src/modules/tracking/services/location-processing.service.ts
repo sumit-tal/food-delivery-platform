@@ -4,7 +4,7 @@ import { LocationUpdateDto } from '../dto/location-update.dto';
 import { LocationQueueService } from './location-queue.service';
 import { DriverLocationRepository } from '../repositories/driver-location.repository';
 import { ActiveDeliveryRepository } from '../repositories/active-delivery.repository';
-import { TrackingGateway } from '../tracking.gateway';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 /**
  * Service for processing driver location updates
@@ -37,7 +37,7 @@ export class LocationProcessingService {
     private readonly locationQueueService: LocationQueueService,
     private readonly driverLocationRepository: DriverLocationRepository,
     private readonly activeDeliveryRepository: ActiveDeliveryRepository,
-    private readonly trackingGateway: TrackingGateway,
+    private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
   ) {
     this.batchSize = this.configService.get<number>('LOCATION_BATCH_SIZE', 100);
@@ -163,7 +163,7 @@ export class LocationProcessingService {
     };
 
     // Broadcast to all clients subscribed to this order
-    this.trackingGateway.broadcastDriverLocation(orderId, broadcastData);
+    this.eventEmitter.emit('driver.location.update', { orderId, locationData: broadcastData });
   }
 
   /**

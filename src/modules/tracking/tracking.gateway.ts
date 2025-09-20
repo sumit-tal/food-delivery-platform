@@ -9,11 +9,12 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UseGuards, Injectable } from '@nestjs/common';
+import { Logger, UseGuards, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { LocationProcessingService, ConnectionManagerService } from './services';
 import { LocationUpdateDto, TrackingSubscriptionDto } from './dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 /**
  * WebSocket gateway for real-time driver tracking
@@ -26,7 +27,7 @@ import { LocationUpdateDto, TrackingSubscriptionDto } from './dto';
   },
   namespace: 'tracking',
 })
-export class TrackingGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class TrackingGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
   @WebSocketServer() server!: Server;
   private readonly logger = new Logger(TrackingGateway.name);
   private readonly maxConnections: number;
@@ -35,6 +36,7 @@ export class TrackingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     private readonly locationProcessingService: LocationProcessingService,
     private readonly connectionManager: ConnectionManagerService,
     private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     this.maxConnections = this.configService.get<number>('MAX_CONCURRENT_CONNECTIONS', 10000);
   }
@@ -44,6 +46,16 @@ export class TrackingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
    */
   afterInit(): void {
     this.logger.log('WebSocket Gateway initialized');
+  }
+
+  /**
+   * Module initialization - set up event listeners
+   */
+  onModuleInit(): void {
+    // Listen for driver location updates
+    this.eventEmitter.on('driver.location.update', (payload: { orderId: string; locationData: { latitude: number; longitude: number; heading?: number; timestamp: string } }) => {
+      this.broadcastDriverLocation(payload.orderId, payload.locationData);
+    });
   }
 
   /**

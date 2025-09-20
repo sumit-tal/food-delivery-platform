@@ -19,9 +19,12 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     // The constructor type from PassportStrategy mixin uses any for args;
     // cast options and disable the specific unsafe-call for super().
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    const clientId = config.get<string>('OAUTH_GOOGLE_CLIENT_ID') || 'dummy-client-id';
+    const clientSecret = config.get<string>('OAUTH_GOOGLE_CLIENT_SECRET') || 'dummy-client-secret';
+
     super({
-      clientID: config.getOrThrow<string>('OAUTH_GOOGLE_CLIENT_ID'),
-      clientSecret: config.getOrThrow<string>('OAUTH_GOOGLE_CLIENT_SECRET'),
+      clientID: clientId,
+      clientSecret: clientSecret,
       callbackURL: '/api/v1/auth/google/callback',
       scope: ['profile', 'email'],
     } as StrategyOptions);
@@ -35,6 +38,14 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     _refreshToken: string,
     profile: Profile,
   ): Promise<{ id: string }> {
+    // Check if we have valid credentials
+    const clientId = this.config.get<string>('OAUTH_GOOGLE_CLIENT_ID');
+    const clientSecret = this.config.get<string>('OAUTH_GOOGLE_CLIENT_SECRET');
+
+    if (!clientId || !clientSecret || clientId === 'dummy-client-id') {
+      throw new Error('Google OAuth is not configured. Please set OAUTH_GOOGLE_CLIENT_ID and OAUTH_GOOGLE_CLIENT_SECRET environment variables.');
+    }
+
     const email: string = this.extractEmail(profile);
     const fullName: string = this.getFullName(profile);
     const userId: string = await this.ensureUser(email, fullName);

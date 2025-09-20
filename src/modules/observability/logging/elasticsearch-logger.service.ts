@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as elasticsearch from '@elastic/elasticsearch';
+import { getBoolean } from '../../../common/utils/config.utils';
 
 /**
  * ElasticsearchLoggerService provides functionality for sending logs to Elasticsearch.
@@ -18,7 +19,7 @@ export class ElasticsearchLoggerService implements OnModuleInit {
   private isConnected: boolean = false;
 
   public constructor(private readonly configService: ConfigService) {
-    this.enabled = this.configService.get<boolean>('ELASTICSEARCH_ENABLED', false);
+    this.enabled = getBoolean(this.configService, 'ELASTICSEARCH_ENABLED', false);
     this.indexPrefix = this.configService.get<string>(
       'ELASTICSEARCH_INDEX_PREFIX',
       'swifteats-logs',

@@ -13,7 +13,10 @@ export class ConnectionPoolService implements OnModuleInit, OnModuleDestroy {
   private readonly poolMetricsIntervalMs: number;
 
   constructor(private readonly configService: ConfigService) {
-    this.poolMetricsIntervalMs = this.configService.get<number>('DB_POOL_METRICS_INTERVAL_MS', 60000);
+    this.poolMetricsIntervalMs = this.configService.get<number>(
+      'DB_POOL_METRICS_INTERVAL_MS',
+      60000,
+    );
   }
 
   /**
@@ -29,7 +32,7 @@ export class ConnectionPoolService implements OnModuleInit, OnModuleDestroy {
    */
   async onModuleDestroy(): Promise<void> {
     this.stopPoolMetricsCollection();
-    
+
     if (this.dataSource && this.dataSource.isInitialized) {
       await this.dataSource.destroy();
       this.logger.log('Database connection pool closed');
@@ -45,7 +48,7 @@ export class ConnectionPoolService implements OnModuleInit, OnModuleDestroy {
       host: this.configService.get<string>('DB_HOST', 'localhost'),
       port: this.configService.get<number>('DB_PORT', 5432),
       username: this.configService.get<string>('DB_USERNAME', 'postgres'),
-      password: this.configService.get<string>('DB_PASSWORD', 'postgres'),
+      password: this.configService.get<string>('DB_PASSWORD', 'password'),
       database: this.configService.get<string>('DB_DATABASE', 'swifteats'),
       entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
       synchronize: this.configService.get<boolean>('DB_SYNCHRONIZE', false),
@@ -102,13 +105,15 @@ export class ConnectionPoolService implements OnModuleInit, OnModuleDestroy {
     if (this.poolMetricsInterval) {
       return;
     }
-    
+
     this.poolMetricsInterval = setInterval(async () => {
       try {
         const metrics = await this.collectPoolMetrics();
         this.logger.debug(`Connection pool metrics: ${JSON.stringify(metrics)}`);
       } catch (error) {
-        this.logger.error(`Error collecting pool metrics: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        this.logger.error(
+          `Error collecting pool metrics: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     }, this.poolMetricsIntervalMs);
   }
@@ -139,14 +144,17 @@ export class ConnectionPoolService implements OnModuleInit, OnModuleDestroy {
     try {
       // Execute a query to get pool statistics
       // Note: This is PostgreSQL-specific
-      const result = await this.dataSource.query(`
-        SELECT 
+      const result = await this.dataSource.query(
+        `
+        SELECT
           count(*) as total_connections,
           sum(CASE WHEN state = 'idle' THEN 1 ELSE 0 END) as idle_connections,
           sum(CASE WHEN state = 'active' THEN 1 ELSE 0 END) as active_connections
-        FROM pg_stat_activity 
+        FROM pg_stat_activity
         WHERE datname = $1
-      `, [this.configService.get<string>('DB_DATABASE', 'swifteats')]);
+      `,
+        [this.configService.get<string>('DB_DATABASE', 'swifteats')],
+      );
 
       return {
         total: parseInt(result[0].total_connections, 10),
@@ -159,7 +167,7 @@ export class ConnectionPoolService implements OnModuleInit, OnModuleDestroy {
       } else {
         this.logger.error('Error getting pool metrics');
       }
-      
+
       return {
         total: 0,
         idle: 0,

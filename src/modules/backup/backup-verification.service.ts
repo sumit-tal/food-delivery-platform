@@ -511,11 +511,11 @@ export class BackupVerificationService {
     try {
       // Create a temporary connection to the test database
       const testConnection = await this.dataSource.manager.connection.createQueryRunner();
-      
+
       // Perform basic data verification queries
       const tableCount = await testConnection.query(`
-        SELECT COUNT(*) as count 
-        FROM information_schema.tables 
+        SELECT COUNT(*) as count
+        FROM information_schema.tables
         WHERE table_schema = 'public'
       `);
 
@@ -606,7 +606,7 @@ export class BackupVerificationService {
       host: this.configService.get<string>('DB_HOST', 'localhost'),
       port: this.configService.get<number>('DB_PORT', 5432),
       username: this.configService.get<string>('DB_USERNAME', 'postgres'),
-      password: this.configService.get<string>('DB_PASSWORD', 'postgres'),
+      password: this.configService.get<string>('DB_PASSWORD', 'password'),
     };
   }
 }

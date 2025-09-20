@@ -39,18 +39,18 @@ export class ReadReplicaService implements OnModuleInit, OnModuleDestroy {
    */
   private async initializeReadReplicas(): Promise<void> {
     const replicaHosts = this.configService.get<string>('DB_READ_REPLICA_HOSTS', '');
-    
+
     if (!replicaHosts) {
       this.logger.log('No read replicas configured, skipping initialization');
       return;
     }
-    
+
     const hosts = replicaHosts.split(',');
     const baseOptions: Omit<PostgresConnectionOptions, 'host'> = {
       type: 'postgres',
       port: this.configService.get<number>('DB_PORT', 5432),
       username: this.configService.get<string>('DB_USERNAME', 'postgres'),
-      password: this.configService.get<string>('DB_PASSWORD', 'postgres'),
+      password: this.configService.get<string>('DB_PASSWORD', 'password'),
       database: this.configService.get<string>('DB_DATABASE', 'swifteats'),
       entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
       synchronize: false,
@@ -61,27 +61,29 @@ export class ReadReplicaService implements OnModuleInit, OnModuleDestroy {
         connectionTimeoutMillis: this.configService.get<number>('DB_CONNECTION_TIMEOUT', 5000),
       },
     };
-    
+
     for (let i = 0; i < hosts.length; i++) {
       const host = hosts[i].trim();
       if (!host) continue;
-      
+
       try {
         const options: PostgresConnectionOptions = {
           ...baseOptions,
           host,
           name: `read-replica-${i}`,
         };
-        
+
         const replica = new DataSource(options);
         await replica.initialize();
         this.readReplicas.push(replica);
         this.logger.log(`Read replica connected: ${host}`);
       } catch (error) {
-        this.logger.error(`Failed to connect to read replica ${host}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        this.logger.error(
+          `Failed to connect to read replica ${host}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     }
-    
+
     if (this.readReplicas.length === 0) {
       this.logger.warn('No read replicas were successfully connected');
     } else {
@@ -97,11 +99,11 @@ export class ReadReplicaService implements OnModuleInit, OnModuleDestroy {
     if (this.readReplicas.length === 0) {
       throw new Error('No read replicas available');
     }
-    
+
     // Simple round-robin selection
     const index = this.currentReplicaIndex;
     this.currentReplicaIndex = (this.currentReplicaIndex + 1) % this.readReplicas.length;
-    
+
     return this.readReplicas[index];
   }
 
@@ -114,22 +116,23 @@ export class ReadReplicaService implements OnModuleInit, OnModuleDestroy {
     if (this.readReplicas.length === 0) {
       throw new Error('No read replicas available');
     }
-    
+
     let lastError: Error | null = null;
     let retriesLeft = this.maxRetries;
-    
+
     while (retriesLeft > 0) {
       const replica = this.getReadReplica();
-      
+
       try {
         return await queryFn(replica);
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error('Unknown error during query execution');
+        lastError =
+          error instanceof Error ? error : new Error('Unknown error during query execution');
         this.logger.warn(`Read replica query failed, retrying: ${lastError.message}`);
         retriesLeft--;
       }
     }
-    
+
     throw lastError || new Error('Failed to execute read query after retries');
   }
 

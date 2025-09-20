@@ -10,6 +10,7 @@ import { DriverLocationRepository } from './repositories/driver-location.reposit
 import { ActiveDeliveryRepository } from './repositories/active-delivery.repository';
 import { ConnectionManagerService } from './services/connection-manager.service';
 import { BullModule } from '@nestjs/bull';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 /**
  * TrackingModule handles real-time driver location tracking
@@ -18,6 +19,7 @@ import { BullModule } from '@nestjs/bull';
 @Module({
   imports: [
     ConfigModule,
+    EventEmitterModule.forRoot(),
     BullModule.registerQueueAsync({
       name: 'location-updates',
       imports: [ConfigModule],

@@ -38,7 +38,7 @@ export class DatabaseConnectionService implements OnModuleInit, OnModuleDestroy 
       host: this.configService.get<string>('DB_HOST', 'localhost'),
       port: this.configService.get<number>('DB_PORT', 5432),
       username: this.configService.get<string>('DB_USERNAME', 'postgres'),
-      password: this.configService.get<string>('DB_PASSWORD', 'postgres'),
+      password: this.configService.get<string>('DB_PASSWORD', 'password'),
       database: this.configService.get<string>('DB_DATABASE', 'swifteats'),
       entities: [__dirname + '/../entities/*.entity{.ts,.js}'],
       synchronize: this.configService.get<boolean>('DB_SYNCHRONIZE', false),

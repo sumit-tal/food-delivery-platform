@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosResponse } from 'axios';
 import { Alert } from './alerting.service';
+import { getBoolean } from '../../../common/utils/config.utils';
 
 /**
  * AlertManagerService provides functionality for sending alerts to Prometheus AlertManager.
@@ -13,7 +14,7 @@ export class AlertManagerService {
   private readonly alertManagerUrl: string;
 
   public constructor(private readonly configService: ConfigService) {
-    this.enabled = this.configService.get<boolean>('ALERTING_ENABLED', false);
+    this.enabled = getBoolean(this.configService, 'ALERTING_ENABLED', false);
     this.alertManagerUrl = this.configService.get<string>(
       'ALERT_MANAGER_URL',
       'http://localhost:9093/api/v2/alerts',
